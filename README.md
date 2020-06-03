@@ -69,11 +69,12 @@ if err != nil {
 log.Printf("plain text = %s\n", plainText)
 
 //hash
-hash, err := s.HashString(data, crypto.SHA256, false)
+h := secret.NewHasher()
+hashString, err := h.HashToString(data, crypto.SHA256)
 if err != nil {
-    log.Fatalf("exit in HashString with err: %v\n", err)
+    log.Fatalf("exit with HashToString err: %v\n", err)
 }
-log.Printf("hash result = %s\n", hash)
+log.Printf("hash result = %v\n", hashString)
 ```
 run result: 
 
