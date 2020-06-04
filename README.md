@@ -3,24 +3,24 @@ usual encryption algorithm written in go
 
 #### Function
 ##### Symmetrical Encryption
-|Name|Support Data Type|Description|Padding|
-|:---|:----------------|:----------|:------|
-|DES |interface        |CBC/ECB/CFB/OFB |PKCS#5/PKCS#7/Zero/None|
-|3DES|interface        |CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
-|AES |interface        |CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
-|RC4 |interface        |-|-|
+|Name|BlockMode|Padding|
+|:---|:----------|:------|
+|DES |CBC/ECB/CFB/OFB |PKCS#5/PKCS#7/Zero/None|
+|3DES|CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
+|AES |CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
+|RC4 |-|-|
 
 ##### Hash  
-|Name|Support Data Type|
-|:---|:----------|
-|Hash|interface|
-|DoubleHash|interface|
+|Name|
+|:---|
+|Hash|
+|DoubleHash|
 
 ##### Asymmetric Encryption
-|Name|Support Data Type|Description|
-|:---|:----------------|:----------|
-|RSA |interface        |Encrypt/Decrypt/Sign/VerifySign|
-|ECC |interface        |Sign/VerifySign|
+|Name|Description|
+|:---|:----------|
+|RSA |Encrypt/Decrypt/Sign/VerifySign|
+|ECC |Sign/VerifySign|
 
 
 #### Example
