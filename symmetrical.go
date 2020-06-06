@@ -24,6 +24,7 @@ const (
 	BlockModeCBC
 	BlockModeCFB
 	BlockModeOFB
+	BlockModeCTR
 )
 
 var (
@@ -136,6 +137,9 @@ func (s *symCipher) SymEncryptToBytes(data interface{}, key []byte, encryptType 
 	case BlockModeOFB:
 		stream := cipher.NewOFB(block, key[:blockSize])
 		stream.XORKeyStream(encryptData, originalData)
+	case BlockModeCTR:
+		stream := cipher.NewCTR(block, key[:blockSize])
+		stream.XORKeyStream(encryptData, originalData)
 	default:
 		err = pkg.ErrInvalidBlockMode
 	}
@@ -199,6 +203,9 @@ func (s *symCipher) SymDecryptBytes(encryptData, key []byte, t symType, modeType
 	case BlockModeCFB:
 		blockStream := cipher.NewCFBDecrypter(block, key[:blockSize])
 		blockStream.XORKeyStream(originalData, encryptData)
+	case BlockModeCTR:
+		stream := cipher.NewCTR(block, key[:blockSize])
+		stream.XORKeyStream(originalData, encryptData)
 	default:
 		err = pkg.ErrInvalidBlockMode
 	}
