@@ -5,9 +5,9 @@ usual encryption algorithm written in go
 ##### Symmetrical Encryption
 |Name|BlockMode|Padding|
 |:---|:----------|:------|
-|DES |CBC/ECB/CFB/OFB |PKCS#5/PKCS#7/Zero/None|
-|3DES|CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
-|AES |CBC/ECB/CFB/OFB|PKCS#5/PKCS#7/Zero/None|
+|DES |CBC/ECB/CFB/OFB/CTR |PKCS#5/PKCS#7/Zero/None|
+|3DES|CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
+|AES |CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
 |RC4 |-|-|
 
 ##### Hash  
