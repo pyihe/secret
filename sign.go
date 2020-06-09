@@ -135,6 +135,10 @@ func (m *asyCipher) EccVerifySignBytes(signData []byte, originalData interface{}
 		return
 	}
 	bytesArray := bytes.Split(signData, []byte("|"))
+	if len(bytesArray) != 2 {
+		err = pkg.ErrDataInvalidBytes
+		return
+	}
 	var r, s big.Int
 	if err := r.UnmarshalText(bytesArray[0]); err != nil {
 		return false, err

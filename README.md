@@ -2,13 +2,14 @@
 usual encryption algorithm written in go
 
 #### Function
-##### Symmetrical Encryption
+##### Cipher
 |Name|BlockMode|Padding|
 |:---|:----------|:------|
 |DES |CBC/ECB/CFB/OFB/CTR |PKCS#5/PKCS#7/Zero/None|
 |3DES|CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
 |AES |CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
 |RC4 |-|-|
+|RSA|Encrypt/Decrypt/Sign/Verify|-|
 
 ##### Hash  
 |Name|
@@ -16,11 +17,11 @@ usual encryption algorithm written in go
 |Hash|
 |DoubleHash|
 
-##### Asymmetric Encryption
+##### Sign&&Verify
 |Name|Description|
 |:---|:----------|
-|RSA |Encrypt/Decrypt/Sign/VerifySign|
-|ECC |Sign/VerifySign|
+|ECC(ECDSA) |Sign/Verify|
+|DSA|Sign/Verify|
 
 
 #### Example
@@ -28,9 +29,9 @@ usual encryption algorithm written in go
 //RSA encrypt, decrypt
 var data  = "usual encryption algorithm written in go"
 var label = []byte("label")
-c := secret.NewAsyCipher()
+c := secret.NewCipher()
 //if GenerateRSAKey is not called, then you must call SetRSAKey to set yourself private key.
-//SetRSAKey is not necessary if GenerateRSAKey is called(this situation is same for ECC).
+//SetRSAKey is not necessary if GenerateRSAKey is called.
 //c.SetRSAKey("your privateKey file", secret.PKCSLevel1)
 _, _, err := c.GenerateRSAKey(1024, "conf", secret.PKCSLevel1)
 if err != nil {
@@ -56,7 +57,7 @@ run result:
 //AES encrypt, decrypt
 data = "usual encryption algorithm written in go"
 key  = "1234567812345678"
-s := secret.NewSymCipher()
+s := secret.NewCipher()
 cipherText, err := s.SymEncryptString(data, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
 if err != nil {
     log.Fatalf("exit in SymEncryptString with err: %v\n", err)
