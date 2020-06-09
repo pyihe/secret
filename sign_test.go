@@ -12,6 +12,7 @@ type user struct {
 }
 
 var (
+	signer = NewSigner()
 	dataStr    = "你可爱吗？000000"
 	dataStruct = &user{
 		Name: "ecc",
@@ -20,7 +21,7 @@ var (
 	}
 )
 func TestMyCipher_GenerateEccKey(t *testing.T) {
-	priFile, pubFile, err := r.GenerateEccKey(ECCCurveTypeP224, "./conf")
+	priFile, pubFile, err := signer.GenerateEccKey(ECCCurveTypeP224, "./conf")
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -28,14 +29,14 @@ func TestMyCipher_GenerateEccKey(t *testing.T) {
 }
 
 func TestAsyCipher_EccSignToBytes(t *testing.T) {
-	if err := r.SetECCKey("conf/ecPrivate.pem"); err != nil {
+	if err := signer.SetECCKey("conf/ecPrivate.pem"); err != nil {
 		t.Fatalf("%v\n", err)
 	}
-	signData, err := r.EccSignToBytes(dataStruct, crypto.SHA256)
+	signData, err := signer.EccSignToBytes(dataStruct, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
-	ok, err := r.EccVerifySignBytes(signData, dataStruct, crypto.SHA256)
+	ok, err := signer.EccVerifySignBytes(signData, dataStruct, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -43,14 +44,14 @@ func TestAsyCipher_EccSignToBytes(t *testing.T) {
 }
 
 func TestAsyCipher_EccSignToString(t *testing.T) {
-	if err := r.SetECCKey("conf/ecPrivate.pem"); err != nil {
+	if err := signer.SetECCKey("conf/ecPrivate.pem"); err != nil {
 		t.Fatalf("%v\n", err)
 	}
-	signData, err := r.EccSignToString(dataStruct, crypto.SHA256)
+	signData, err := signer.EccSignToString(dataStruct, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
-	ok, err := r.EccVerifySignString(signData, dataStruct, crypto.SHA256)
+	ok, err := signer.EccVerifySignString(signData, dataStruct, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}

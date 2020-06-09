@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	s = NewSymCipher()
+	s = NewCipher()
 	//key  = []byte("abcd0987")
 	//key = []byte("abcd0987abcd0987abcd0987")
 	key = []byte("abcd0987abcd0987")

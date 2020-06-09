@@ -2,7 +2,6 @@ package secret
 
 import (
 	"crypto"
-	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"path"
 	"secret/pkg"
-	"sync"
 )
 
 const (
@@ -31,31 +29,14 @@ const (
 	RSASignTypePSS
 )
 
-var (
-	defaultAsyCipher = &asyCipher{}
-	once             sync.Once
-)
-
 type (
 	pKCSLevel      uint //PKCS标准类型, 用于生成密钥文件
 	rSAEncryptType uint //RSA加密算法类型, 用于加密、解密
 	rSASignTyp     uint //RSA签名类型
-
-	asyCipher struct {
-		rsaPrivateKey *rsa.PrivateKey   //RSA私钥
-		eccPrivateKey *ecdsa.PrivateKey //ECC私钥
-	}
 )
 
-//初始化RSA解码器，PKCSLevel填私钥的生成规范标准(PKCS#1, PKCS#8, 默认PKCS#1)
-//参数均为必填参数，密钥不论是既有还是调用GenerateRSAKey生成，都需要将密钥路径传入本函数
-//pkcsLevel对应生成密钥时选择的PKCSLevel，默认PKCS#1
-func NewAsyCipher() AsyCipher {
-	return defaultAsyCipher
-}
-
 //如果是既有的密钥对，需要调用此方法设置RSA私钥(pkcsLevel 为生成密钥时的规范，默认为PKCSLevel1)
-func (m *asyCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
+func (m *myCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
 	privateKey, err := getPrivateKey(privateFile, pkcsLevel)
 	if err != nil {
 		return err
@@ -70,7 +51,7 @@ func (m *asyCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
 	saveDir: 密钥文件的保存目录
 	pkcsLevel: 生成密钥的规范: PKCS1(PKCS#1) 和PKCS8(PKCS#8)
 */
-func (m *asyCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error) {
+func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error) {
 	/*
 		1. 生成RSA密钥对
 		2. 将私钥对象转换为DER编码形式
@@ -144,7 +125,7 @@ func (m *asyCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel
 	rsaType: ras加密类型, OAEP和PKCS1v15(推荐使用OAEP)
 	label: 当rsaType为OAEP时传值, 不需要时传nil(加密和解密时的label必须一致)
 */
-func (m *asyCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
+func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
 	if m.rsaPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
@@ -165,7 +146,7 @@ func (m *asyCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncry
 /*
 	RSA加密字符串
 */
-func (m *asyCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData string, err error) {
+func (m *myCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData string, err error) {
 	encryptBytes, err := m.RSAEncryptToBytes(originalData, rsaType, label)
 	if err != nil {
 		return
@@ -184,7 +165,7 @@ func (m *asyCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncr
 	rsaType: 解密类型, 与加密类型对应（OAEP和PKCS1v15）
 	label: 当rsaType为OAEP时传值，不需要时传nil
 */
-func (m *asyCipher) RSADecryptBytes(encryptData []byte, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
+func (m *myCipher) RSADecryptBytes(encryptData []byte, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
 	if m.rsaPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
@@ -206,7 +187,7 @@ func (m *asyCipher) RSADecryptBytes(encryptData []byte, rsaType rSAEncryptType, 
 /*
 	RSA解密字符串
 */
-func (m *asyCipher) RSADecryptString(encryptData string, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
+func (m *myCipher) RSADecryptString(encryptData string, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
 	encryptBytes, err := base64.StdEncoding.DecodeString(encryptData)
 	if err != nil {
 		return
@@ -223,7 +204,7 @@ func (m *asyCipher) RSADecryptString(encryptData string, rsaType rSAEncryptType,
 	signType: 签名算法类型(SignTypePKCS1v15和SignTypePSS)
 	hashType: hash计算类型
 */
-func (m *asyCipher) RSASignToBytes(data interface{}, signType rSASignTyp, hashType crypto.Hash) (signedData []byte, err error) {
+func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignTyp, hashType crypto.Hash) (signedData []byte, err error) {
 	/*	签名流程:
 		1. 获取用于签名的私钥
 		2. 计算原始数据的hash值
@@ -252,7 +233,7 @@ func (m *asyCipher) RSASignToBytes(data interface{}, signType rSASignTyp, hashTy
 }
 
 //签名字符串
-func (m *asyCipher) RSASignToString(data interface{}, signType rSASignTyp, hashType crypto.Hash) (string, error) {
+func (m *myCipher) RSASignToString(data interface{}, signType rSASignTyp, hashType crypto.Hash) (string, error) {
 	signBytes, err := m.RSASignToBytes(data, signType, hashType)
 	if err != nil {
 		return "", err
@@ -270,7 +251,7 @@ func (m *asyCipher) RSASignToString(data interface{}, signType rSASignTyp, hashT
 	signType: 签名算法类型, 与签名时的对应一致
 	hashType: hash类型, 与签名时的对应一致
 */
-func (m *asyCipher) RSAVerifySignBytes(signedData []byte, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
+func (m *myCipher) RSAVerifySignBytes(signedData []byte, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
 	/*	验证签名流程:
 		1. 获取公钥信息
 		2. 计算原始数据的hash值
@@ -302,7 +283,7 @@ func (m *asyCipher) RSAVerifySignBytes(signedData []byte, originalData interface
 }
 
 //验证字符串签名
-func (m *asyCipher) RSAVerifySignString(signedData string, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
+func (m *myCipher) RSAVerifySignString(signedData string, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
 	signBytes, err := base64.StdEncoding.DecodeString(signedData)
 	if err != nil {
 		return false, err

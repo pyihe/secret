@@ -3,6 +3,7 @@ package secret
 import (
 	"bytes"
 	"crypto"
+	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -23,10 +24,23 @@ const (
 	ECCCurveTypeP521
 )
 
+var (
+	defaultSigner = &mySigner{}
+)
+
 type eccCurveType uint
 
+type mySigner struct {
+	eccPrivateKey *ecdsa.PrivateKey //ECC私钥
+	dsaPrivateKey *dsa.PrivateKey   //DSA私钥
+}
+
+func NewSigner() *mySigner {
+	return defaultSigner
+}
+
 //如果是既有的密钥对，需要调用此方法设置ECC私钥
-func (m *asyCipher) SetECCKey(privateFile string) error {
+func (m *mySigner) SetECCKey(privateFile string) error {
 	privateKey, err := getEccPrivateKey(privateFile)
 	if err != nil {
 		return err
@@ -35,8 +49,11 @@ func (m *asyCipher) SetECCKey(privateFile string) error {
 	return nil
 }
 
+/*
+	ECC签名相关
+*/
 //生成椭圆曲线密钥对
-func (m *asyCipher) GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error) {
+func (m *mySigner) GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error) {
 	c, err := getCurveInstance(curveType)
 	if err != nil {
 		return
@@ -86,7 +103,7 @@ func (m *asyCipher) GenerateEccKey(curveType eccCurveType, saveDir string) (priv
 }
 
 //ECC数字签名
-func (m *asyCipher) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error) {
+func (m *mySigner) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error) {
 	if m.eccPrivateKey == nil {
 		return nil, pkg.ErrNoPrivateKey
 	}
@@ -114,7 +131,7 @@ func (m *asyCipher) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]by
 }
 
 //ECC签名字符串
-func (m *asyCipher) EccSignToString(data interface{}, hashType crypto.Hash) (string, error) {
+func (m *mySigner) EccSignToString(data interface{}, hashType crypto.Hash) (string, error) {
 	bytes, err := m.EccSignToBytes(data, hashType)
 	if err != nil {
 		return "", err
@@ -124,7 +141,7 @@ func (m *asyCipher) EccSignToString(data interface{}, hashType crypto.Hash) (str
 }
 
 //ECC数字签名验证
-func (m *asyCipher) EccVerifySignBytes(signData []byte, originalData interface{}, hashType crypto.Hash) (ok bool, err error) {
+func (m *mySigner) EccVerifySignBytes(signData []byte, originalData interface{}, hashType crypto.Hash) (ok bool, err error) {
 	if m.eccPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
@@ -151,12 +168,99 @@ func (m *asyCipher) EccVerifySignBytes(signData []byte, originalData interface{}
 }
 
 //ECC验证字符串签名
-func (m *asyCipher) EccVerifySignString(signData string, originalData interface{}, hashType crypto.Hash) (bool, error) {
+func (m *mySigner) EccVerifySignString(signData string, originalData interface{}, hashType crypto.Hash) (bool, error) {
 	sign, err := base64.StdEncoding.DecodeString(signData)
 	if err != nil {
 		return false, err
 	}
 	return m.EccVerifySignBytes(sign, originalData, hashType)
+}
+
+/*
+	DSA签名相关
+*/
+func (m *mySigner) SetDSAKey(size dsa.ParameterSizes) (err error) {
+	var param dsa.Parameters
+	if err = dsa.GenerateParameters(&param, rand.Reader, size); err != nil {
+		return
+	}
+	var privateKey = &dsa.PrivateKey{
+		PublicKey: dsa.PublicKey{
+			Parameters: param,
+		},
+	}
+	if err = dsa.GenerateKey(privateKey, rand.Reader); err != nil {
+		return
+	}
+	m.dsaPrivateKey = privateKey
+	return nil
+}
+
+func (m *mySigner) DSASignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error) {
+	if m.dsaPrivateKey == nil {
+		return nil, pkg.ErrNoPrivateKey
+	}
+	hash, err := NewHasher().HashToBytes(data, hashType)
+	if err != nil {
+		return nil, err
+	}
+
+	r, s, err := dsa.Sign(rand.Reader, m.dsaPrivateKey, hash)
+	if err != nil {
+		return nil, err
+	}
+	rBytes, err := r.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	sBytes, err := s.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	result := append(rBytes, byte('|'))
+	result = append(result, sBytes...)
+	return result, nil
+}
+
+func (m *mySigner) DSASignToString(data interface{}, hashType crypto.Hash) (string, error) {
+	bytes, err := m.DSASignToBytes(data, hashType)
+	if err != nil {
+		return "", err
+	}
+	result := base64.StdEncoding.EncodeToString(bytes)
+	return result, nil
+}
+
+func (m *mySigner) DSAVerifyBytes(data interface{}, signed []byte, hashType crypto.Hash) (bool, error) {
+	if m.dsaPrivateKey == nil {
+		return false, pkg.ErrNoPrivateKey
+	}
+	hash, err := NewHasher().HashToBytes(data, hashType)
+	if err != nil {
+		return false, err
+	}
+	intBytes := bytes.Split(signed, []byte("|"))
+	if len(intBytes) != 2 {
+		return false, pkg.ErrDataInvalidBytes
+	}
+	var r, s big.Int
+	if err = r.UnmarshalText(intBytes[0]); err != nil {
+		return false, err
+	}
+	if err = s.UnmarshalText(intBytes[1]); err != nil {
+		return false, err
+	}
+	ok := dsa.Verify(&m.dsaPrivateKey.PublicKey, hash, &r, &s)
+	return ok, nil
+}
+
+func (m *mySigner) DSAVerifyString(data interface{}, signed string, hashType crypto.Hash) (bool, error) {
+	byteSign, err := base64.StdEncoding.DecodeString(signed)
+	if err != nil {
+		return false, err
+	}
+
+	return m.DSAVerifyBytes(data, byteSign, hashType)
 }
 
 func getEccPrivateKey(privateFile string) (privateKey *ecdsa.PrivateKey, err error) {

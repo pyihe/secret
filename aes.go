@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/des"
 	"crypto/rc4"
+	"crypto/rsa"
 	"encoding/base64"
 	"secret/pkg"
 )
@@ -28,22 +29,23 @@ const (
 )
 
 var (
-	defaultSymCipher = &symCipher{}
+	defaultCipher = &myCipher{}
 )
 
 type (
 	symType   uint
 	blockMode uint
 
-	symCipher struct {
+	myCipher struct {
+		rsaPrivateKey *rsa.PrivateKey
 	}
 )
 
-func NewSymCipher() SymCipher {
-	return defaultSymCipher
+func NewCipher() Cipher {
+	return defaultCipher
 }
 
-func (s *symCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error) {
+func (m *myCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error) {
 	c, err := rc4.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -58,7 +60,7 @@ func (s *symCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, err
 	return dst, nil
 }
 
-func (s *symCipher) RC4EncryptToString(data interface{}, key []byte) (string, error) {
+func (m *myCipher) RC4EncryptToString(data interface{}, key []byte) (string, error) {
 	c, err := rc4.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -74,20 +76,20 @@ func (s *symCipher) RC4EncryptToString(data interface{}, key []byte) (string, er
 	return result, nil
 }
 
-func (s *symCipher) RC4DecryptBytes(encryptData, key []byte) ([]byte, error) {
-	return s.RC4EncryptToBytes(encryptData, key)
+func (m *myCipher) RC4DecryptBytes(encryptData, key []byte) ([]byte, error) {
+	return m.RC4EncryptToBytes(encryptData, key)
 }
 
-func (s *symCipher) RC4DecryptString(encryptData string, key []byte) ([]byte, error) {
+func (m *myCipher) RC4DecryptString(encryptData string, key []byte) ([]byte, error) {
 	bytes, err := base64.StdEncoding.DecodeString(encryptData)
 	if err != nil {
 		return nil, err
 	}
-	return s.RC4EncryptToBytes(bytes, key)
+	return m.RC4EncryptToBytes(bytes, key)
 }
 
 //对称加密，返回字节切片
-func (s *symCipher) SymEncryptToBytes(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptData []byte, err error) {
+func (m *myCipher) SymEncryptToBytes(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptData []byte, err error) {
 	/*
 		1. 创建密码器
 		2. 填充明文
@@ -147,13 +149,13 @@ func (s *symCipher) SymEncryptToBytes(data interface{}, key []byte, encryptType 
 }
 
 //对称加密，返回base64编码后的字符串
-func (s *symCipher) SymEncryptToString(originalData interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptString string, err error) {
+func (m *myCipher) SymEncryptToString(originalData interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptString string, err error) {
 	var data []byte
 	data, err = getBytes(originalData)
 	if err != nil {
 		return
 	}
-	encryptData, err := s.SymEncryptToBytes(data, key, encryptType, modeType, paddingType)
+	encryptData, err := m.SymEncryptToBytes(data, key, encryptType, modeType, paddingType)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +164,7 @@ func (s *symCipher) SymEncryptToString(originalData interface{}, key []byte, enc
 }
 
 //解密
-func (s *symCipher) SymDecryptBytes(encryptData, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error) {
+func (m *myCipher) SymDecryptBytes(encryptData, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error) {
 	/*
 		1. 创建密码器
 		2. 实例话解密模式
@@ -214,10 +216,10 @@ func (s *symCipher) SymDecryptBytes(encryptData, key []byte, t symType, modeType
 	return
 }
 
-func (s *symCipher) SymDecryptString(encryptData string, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error) {
+func (m *myCipher) SymDecryptString(encryptData string, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error) {
 	data, err := base64.StdEncoding.DecodeString(encryptData)
 	if err != nil {
 		return nil, err
 	}
-	return s.SymDecryptBytes(data, key, t, modeType, paddingType)
+	return m.SymDecryptBytes(data, key, t, modeType, paddingType)
 }

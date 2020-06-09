@@ -6,12 +6,9 @@ import (
 	"testing"
 )
 
-var (
-	r = NewAsyCipher()
-)
 
 func TestGenerateRSAKey(t *testing.T) {
-	privateFile, publicFile, err := r.GenerateRSAKey(1024, "./conf", PKCSLevel1)
+	privateFile, publicFile, err := s.GenerateRSAKey(1024, "./conf", PKCSLevel1)
 	if err != nil {
 		t.Fatalf("err = %v\n", err)
 	}
@@ -19,18 +16,18 @@ func TestGenerateRSAKey(t *testing.T) {
 }
 
 func TestAsyCipher_RSAEncryptToBytes(t *testing.T) {
-	err := r.SetRSAKey("./conf/private.pem", PKCSLevel1)
+	err := s.SetRSAKey("./conf/private.pem", PKCSLevel1)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("before encrypt, plain text is: %v\n", dataStruct)
 	label := []byte("this is label")
-	encryptData, err := r.RSAEncryptToBytes(dataStruct, RSAEncryptTypePKCS1v15, label)
+	encryptData, err := s.RSAEncryptToBytes(dataStruct, RSAEncryptTypePKCS1v15, label)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after encrypt, cipher text is: %s\n", encryptData)
-	originalData, err := r.RSADecryptBytes(encryptData, RSAEncryptTypePKCS1v15, label)
+	originalData, err := s.RSADecryptBytes(encryptData, RSAEncryptTypePKCS1v15, label)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -45,17 +42,17 @@ func TestAsyCipher_RSAEncryptToBytes(t *testing.T) {
 }
 
 func TestAsyCipher_RSAEncryptToString(t *testing.T) {
-	err := r.SetRSAKey("./conf/private.pem", PKCSLevel1)
+	err := s.SetRSAKey("./conf/private.pem", PKCSLevel1)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("before encrypt, plain text is: %+v\n", dataStruct)
-	encryptString, err := r.RSAEncryptToString(dataStruct, RSAEncryptTypeOAEP, nil)
+	encryptString, err := s.RSAEncryptToString(dataStruct, RSAEncryptTypeOAEP, nil)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after encrypt, cipher text is: %s\n", encryptString)
-	originalString, err := r.RSADecryptString(encryptString, RSAEncryptTypeOAEP, nil)
+	originalString, err := s.RSADecryptString(encryptString, RSAEncryptTypeOAEP, nil)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -66,17 +63,17 @@ func TestAsyCipher_RSAEncryptToString(t *testing.T) {
 }
 
 func TestAsyCipher_RSASignToBytes(t *testing.T) {
-	err := r.SetRSAKey("./conf/private.pem", PKCSLevel1)
+	err := s.SetRSAKey("./conf/private.pem", PKCSLevel1)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("before sign, data is: %s\n", dataStr)
-	signData, err := r.RSASignToBytes(dataStr, RSASignTypePSS, crypto.SHA256)
+	signData, err := s.RSASignToBytes(dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after sign, sign data is: %s\n", signData)
-	ok, err := r.RSAVerifySignBytes(signData, dataStr, RSASignTypePSS, crypto.SHA256)
+	ok, err := s.RSAVerifySignBytes(signData, dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -84,17 +81,17 @@ func TestAsyCipher_RSASignToBytes(t *testing.T) {
 }
 
 func TestAsyCipher_RSASignToString(t *testing.T) {
-	err := r.SetRSAKey("./conf/private.pem", PKCSLevel1)
+	err := s.SetRSAKey("./conf/private.pem", PKCSLevel1)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("before sign, data is: %s\n", dataStr)
-	signData, err := r.RSASignToString(dataStr, RSASignTypePSS, crypto.SHA256)
+	signData, err := s.RSASignToString(dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after sign, sign data is: %s\n", signData)
-	ok, err := r.RSAVerifySignString(signData, dataStr, RSASignTypePSS, crypto.SHA256)
+	ok, err := s.RSAVerifySignString(signData, dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}

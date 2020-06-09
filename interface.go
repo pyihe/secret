@@ -1,8 +1,39 @@
 package secret
 
-import "crypto"
+import (
+	"crypto"
+	"crypto/dsa"
+)
 
-type AsyCipher interface {
+/*
+	这里封装有：
+	Cipher: RC4, DES, 3DES, AES, RSA
+	数字签名: RSA, ECC, DSA
+	Hash函数
+*/
+
+//对称加密器（包括DES/3DES/AES/RC4）
+type Cipher interface {
+	//RC4
+	//加密，返回[]byte
+	RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error)
+	//解密[]byte
+	RC4DecryptBytes(encryptData []byte, key []byte) ([]byte, error)
+	//加密，返回base64 string
+	RC4EncryptToString(data interface{}, key []byte) (string, error)
+	//解密base64 string
+	RC4DecryptString(encryptData string, key []byte) ([]byte, error)
+
+	//AES/DES/3DES
+	//加密，返回[]byte
+	SymEncryptToBytes(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptData []byte, err error)
+	//加密，返回base64 string
+	SymEncryptToString(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptString string, err error)
+	//解密[]byte
+	SymDecryptBytes(encryptData, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error)
+	//解密base64 string
+	SymDecryptString(encryptData string, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error)
+
 	//RSA
 	//设置密钥
 	SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error
@@ -24,44 +55,6 @@ type AsyCipher interface {
 	RSAVerifySignBytes(signBytes []byte, data interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error)
 	//验证base64 string签名结果
 	RSAVerifySignString(signString string, data interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error)
-
-	//ECC
-	//设置密钥对
-	SetECCKey(privateFile string) error
-	//生成密钥对
-	GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error)
-	//签名，返回字节切片
-	EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
-	//签名，返回base64编码后的字符串
-	EccSignToString(data interface{}, hashType crypto.Hash) (string, error)
-	//验证字节切片签名结果
-	EccVerifySignBytes(signData []byte, originalData interface{}, hashType crypto.Hash) (ok bool, err error)
-	//验证base64编码的字符串的签名结果
-	EccVerifySignString(signData string, originalData interface{}, hashType crypto.Hash) (bool, error)
-	//TODO ECC 加密
-}
-
-//对称加密器（包括DES/3DES/AES/RC4）
-type SymCipher interface {
-	//RC4
-	//加密，返回[]byte
-	RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error)
-	//解密[]byte
-	RC4DecryptBytes(encryptData []byte, key []byte) ([]byte, error)
-	//加密，返回base64 string
-	RC4EncryptToString(data interface{}, key []byte) (string, error)
-	//解密base64 string
-	RC4DecryptString(encryptData string, key []byte) ([]byte, error)
-
-	//AES/DES/3DES
-	//加密，返回[]byte
-	SymEncryptToBytes(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptData []byte, err error)
-	//加密，返回base64 string
-	SymEncryptToString(data interface{}, key []byte, encryptType symType, modeType blockMode, paddingType paddingType) (encryptString string, err error)
-	//解密[]byte
-	SymDecryptBytes(encryptData, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error)
-	//解密base64 string
-	SymDecryptString(encryptData string, key []byte, t symType, modeType blockMode, paddingType paddingType) (originalData []byte, err error)
 }
 
 //hash
@@ -70,4 +63,22 @@ type Hasher interface {
 	HashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
 	DoubleHashToString(data interface{}, hashType crypto.Hash) (hashString string, err error)
 	DoubleHashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
+}
+
+//数字签名
+type Signer interface {
+	//ECC椭圆曲线签名
+	SetECCKey(privateFile string) error
+	GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error)
+	EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
+	EccSignToString(data interface{}, hashType crypto.Hash) (string, error)
+	EccVerifySignBytes(signData []byte, originalData interface{}, hashType crypto.Hash) (ok bool, err error)
+	EccVerifySignString(signData string, originalData interface{}, hashType crypto.Hash) (bool, error)
+
+	//DSA签名
+	SetDSAKey(size dsa.ParameterSizes) (err error)
+	DSASignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
+	DSASignToString(data interface{}, hashType crypto.Hash) (string, error)
+	DSAVerifyBytes(data interface{}, signed []byte, hashType crypto.Hash) (bool, error)
+	DSAVerifyString(data interface{}, signed string, hashType crypto.Hash) (bool, error)
 }
