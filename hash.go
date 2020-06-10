@@ -2,24 +2,29 @@ package secret
 
 import (
 	"crypto"
+	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/pyihe/secret/pkg"
 	"golang.org/x/crypto/md4"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 	"hash"
-	"secret/pkg"
+)
+
+var (
+	defaultHasher = &myHasher{}
 )
 
 type myHasher struct {
 }
 
 func NewHasher() Hasher {
-	return new(myHasher)
+	return defaultHasher
 }
 
 //hexTag 标示字符串是否是16进制格式的
@@ -93,6 +98,25 @@ func (s *myHasher) DoubleHashToBytes(data interface{}, hashType crypto.Hash) (ha
 	h.Write(hashBytes)
 	hashBytes = h.Sum(nil)
 	return
+}
+
+func (s *myHasher) MAC(hashType crypto.Hash, message, key []byte) (mac []byte) {
+	hasher := hmac.New(func() hash.Hash {
+		h, err := getHashInstance(hashType)
+		if err != nil {
+			//默认sha256
+			return sha256.New()
+		}
+		return h
+	}, key)
+	hasher.Write(message)
+	mac = hasher.Sum(nil)
+	return
+}
+
+func (s *myHasher) CheckMac(hashType crypto.Hash, message, key, mac []byte) bool {
+	expectedMac := s.MAC(hashType, message, key)
+	return hmac.Equal(expectedMac, mac)
 }
 
 func getHashInstance(hashType crypto.Hash) (hash.Hash, error) {

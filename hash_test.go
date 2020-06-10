@@ -2,6 +2,7 @@ package secret
 
 import (
 	"crypto"
+	"fmt"
 	"testing"
 )
 
@@ -39,4 +40,9 @@ func TestMyHasher_DoubleHashToString(t *testing.T) {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("%s\n", result)
+}
+
+func TestMyHasher_MAC(t *testing.T) {
+	mac := h.MAC(crypto.SHA256, []byte(dataStr), key)
+	fmt.Println(h.CheckMac(crypto.SHA384, []byte(dataStr), key, mac))
 }
