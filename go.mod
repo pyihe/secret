@@ -1,4 +1,4 @@
-module secret
+module github.com/pyihe/secret
 
 go 1.14
 
