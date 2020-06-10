@@ -10,11 +10,11 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"github.com/pyihe/secret/pkg"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
-	"secret/pkg"
 )
 
 const (

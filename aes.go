@@ -7,7 +7,7 @@ import (
 	"crypto/rc4"
 	"crypto/rsa"
 	"encoding/base64"
-	"secret/pkg"
+	"github.com/pyihe/secret/pkg"
 )
 
 /*

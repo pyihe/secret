@@ -9,7 +9,7 @@ import (
 	这里封装有：
 	Cipher: RC4, DES, 3DES, AES, RSA
 	数字签名: RSA, ECC, DSA
-	Hash函数
+	Hash函数、消息验证码
 */
 
 //对称加密器（包括DES/3DES/AES/RC4）
@@ -63,6 +63,8 @@ type Hasher interface {
 	HashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
 	DoubleHashToString(data interface{}, hashType crypto.Hash) (hashString string, err error)
 	DoubleHashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
+	MAC(hashType crypto.Hash, message, key []byte) (mac []byte)
+	CheckMac(hashType crypto.Hash, message, key, mac []byte) bool
 }
 
 //数字签名
