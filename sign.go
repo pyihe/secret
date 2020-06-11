@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/dsa"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
@@ -31,11 +32,13 @@ var (
 type eccCurveType uint
 
 type mySigner struct {
-	eccPrivateKey *ecdsa.PrivateKey //ECC私钥
-	dsaPrivateKey *dsa.PrivateKey   //DSA私钥
+	eccPrivateKey     *ecdsa.PrivateKey  //ECC私钥
+	dsaPrivateKey     *dsa.PrivateKey    //DSA私钥
+	ed25519PrivateKey ed25519.PrivateKey //Ed25519私钥
+	ed25519PublicKey  ed25519.PublicKey  //Ed25519公钥
 }
 
-func NewSigner() *mySigner {
+func NewSigner() Signer {
 	return defaultSigner
 }
 
@@ -76,12 +79,11 @@ func (m *mySigner) GenerateEccKey(curveType eccCurveType, saveDir string) (priva
 	if err != nil {
 		return
 	}
-	defer file.Close()
 
 	if err = pem.Encode(file, block); err != nil {
 		return
 	}
-
+	file.Close()
 	//生成公钥
 	publicKey := &privateKey.PublicKey
 	publicBytes, err := x509.MarshalPKIXPublicKey(publicKey)
@@ -98,6 +100,7 @@ func (m *mySigner) GenerateEccKey(curveType eccCurveType, saveDir string) (priva
 	if err = pem.Encode(file, block); err != nil {
 		return
 	}
+	file.Close()
 	m.eccPrivateKey = privateKey
 	return
 }
@@ -141,7 +144,7 @@ func (m *mySigner) EccSignToString(data interface{}, hashType crypto.Hash) (stri
 }
 
 //ECC数字签名验证
-func (m *mySigner) EccVerifySignBytes(signData []byte, originalData interface{}, hashType crypto.Hash) (ok bool, err error) {
+func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashType crypto.Hash) (ok bool, err error) {
 	if m.eccPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
@@ -151,7 +154,19 @@ func (m *mySigner) EccVerifySignBytes(signData []byte, originalData interface{},
 	if err != nil {
 		return
 	}
-	bytesArray := bytes.Split(signData, []byte("|"))
+	var sig []byte
+	switch t := signed.(type) {
+	case string:
+		sig, err = base64.StdEncoding.DecodeString(t)
+		if err != nil {
+			return false, err
+		}
+	case []byte:
+		sig = t
+	default:
+		return false, pkg.ErrInvalidCipherText
+	}
+	bytesArray := bytes.Split(sig, []byte("|"))
 	if len(bytesArray) != 2 {
 		err = pkg.ErrDataInvalidBytes
 		return
@@ -165,15 +180,6 @@ func (m *mySigner) EccVerifySignBytes(signData []byte, originalData interface{},
 	}
 	ok = ecdsa.Verify(&m.eccPrivateKey.PublicKey, hash, &r, &s)
 	return
-}
-
-//ECC验证字符串签名
-func (m *mySigner) EccVerifySignString(signData string, originalData interface{}, hashType crypto.Hash) (bool, error) {
-	sign, err := base64.StdEncoding.DecodeString(signData)
-	if err != nil {
-		return false, err
-	}
-	return m.EccVerifySignBytes(sign, originalData, hashType)
 }
 
 /*
@@ -231,7 +237,7 @@ func (m *mySigner) DSASignToString(data interface{}, hashType crypto.Hash) (stri
 	return result, nil
 }
 
-func (m *mySigner) DSAVerifyBytes(data interface{}, signed []byte, hashType crypto.Hash) (bool, error) {
+func (m *mySigner) DSAVerify(data interface{}, signed interface{}, hashType crypto.Hash) (bool, error) {
 	if m.dsaPrivateKey == nil {
 		return false, pkg.ErrNoPrivateKey
 	}
@@ -239,7 +245,19 @@ func (m *mySigner) DSAVerifyBytes(data interface{}, signed []byte, hashType cryp
 	if err != nil {
 		return false, err
 	}
-	intBytes := bytes.Split(signed, []byte("|"))
+	var sig []byte
+	switch t := signed.(type) {
+	case string:
+		sig, err = base64.StdEncoding.DecodeString(t)
+		if err != nil {
+			return false, err
+		}
+	case []byte:
+		sig = t
+	default:
+		return false, pkg.ErrInvalidCipherText
+	}
+	intBytes := bytes.Split(sig, []byte("|"))
 	if len(intBytes) != 2 {
 		return false, pkg.ErrDataInvalidBytes
 	}
@@ -254,13 +272,49 @@ func (m *mySigner) DSAVerifyBytes(data interface{}, signed []byte, hashType cryp
 	return ok, nil
 }
 
-func (m *mySigner) DSAVerifyString(data interface{}, signed string, hashType crypto.Hash) (bool, error) {
-	byteSign, err := base64.StdEncoding.DecodeString(signed)
+func (m *mySigner) Ed25519SignToBytes(data interface{}) ([]byte, error) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	bytes, err := getBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	result := ed25519.Sign(privateKey, bytes)
+	m.ed25519PrivateKey = privateKey
+	m.ed25519PublicKey = publicKey
+	return result, nil
+}
+
+func (m *mySigner) Ed25519SignToString(data interface{}) (string, error) {
+	bytes, err := m.Ed25519SignToBytes(data)
+	if err != nil {
+		return "", err
+	}
+	result := base64.StdEncoding.EncodeToString(bytes)
+	return result, nil
+}
+
+func (m *mySigner) Ed25519Verify(data interface{}, signed interface{}) (bool, error) {
+	bytes, err := getBytes(data)
 	if err != nil {
 		return false, err
 	}
-
-	return m.DSAVerifyBytes(data, byteSign, hashType)
+	var sig []byte
+	switch t := signed.(type) {
+	case string:
+		sig, err = base64.StdEncoding.DecodeString(t)
+		if err != nil {
+			return false, err
+		}
+	case []byte:
+		sig = t
+	default:
+		return false, pkg.ErrInvalidCipherText
+	}
+	ok := ed25519.Verify(m.ed25519PublicKey, bytes, sig)
+	return ok, nil
 }
 
 func getEccPrivateKey(privateFile string) (privateKey *ecdsa.PrivateKey, err error) {
