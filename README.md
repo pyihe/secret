@@ -37,12 +37,12 @@ _, _, err := c.GenerateRSAKey(1024, "conf", secret.PKCSLevel1)
 if err != nil {
     log.Fatalf("exit with generate key err: %v\n", err)
 }
-encryptData, err := c.RSAEncryptString(data, secret.RSAEncryptTypeOAEP, label)
+encryptData, err := c.RSAEncryptToString(data, secret.RSAEncryptTypeOAEP, label)
 if err != nil {
     log.Fatalf("exit with encrypt err: %v\n", err)
 }
 log.Printf("after encrypt, encrypt data = %s\n", encryptData)
-originalData, err := c.RSADecryptString(encryptData, secret.RSAEncryptTypeOAEP, label)
+originalData, err := c.RSADecrypt(encryptData, secret.RSAEncryptTypeOAEP, label)
 if err != nil {
     log.Fatalf("exit with decrypt err: %v\n", err)
 }
@@ -58,12 +58,12 @@ run result:
 data = "usual encryption algorithm written in go"
 key  = "1234567812345678"
 s := secret.NewCipher()
-cipherText, err := s.SymEncryptString(data, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
+cipherText, err := s.SymEncryptToString(data, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
 if err != nil {
     log.Fatalf("exit in SymEncryptString with err: %v\n", err)
 }
 log.Printf("cipher text = %s\n", cipherText)
-plainText, err := s.SymDecryptString(cipherText, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
+plainText, err := s.SymDecrypt(cipherText, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
 if err != nil {
     log.Fatalf("exit in SymDecryptString with err: %v\n", err)
 }
