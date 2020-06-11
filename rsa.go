@@ -25,14 +25,14 @@ const (
 )
 
 const (
-	RSASignTypePKCS1v15 rSASignTyp = iota + 1
+	RSASignTypePKCS1v15 rSASignType = iota + 1
 	RSASignTypePSS
 )
 
 type (
 	pKCSLevel      uint //PKCS标准类型, 用于生成密钥文件
 	rSAEncryptType uint //RSA加密算法类型, 用于加密、解密
-	rSASignTyp     uint //RSA签名类型
+	rSASignType    uint //RSA签名类型
 )
 
 //如果是既有的密钥对，需要调用此方法设置RSA私钥(pkcsLevel 为生成密钥时的规范，默认为PKCSLevel1)
@@ -87,8 +87,6 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	if err != nil {
 		return
 	}
-	defer file.Close()
-
 	var block = &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: privateBytes,
@@ -96,6 +94,7 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	if err = pem.Encode(file, block); err != nil {
 		return
 	}
+	file.Close()
 
 	//创建公钥
 	publicPath := path.Join(saveDir, "public.pem")
@@ -111,7 +110,7 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	if err = pem.Encode(file, block); err != nil {
 		return
 	}
-
+	file.Close()
 	m.rsaPrivateKey = privateData
 
 	return privatePath, publicPath, nil
@@ -165,34 +164,36 @@ func (m *myCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncry
 	rsaType: 解密类型, 与加密类型对应（OAEP和PKCS1v15）
 	label: 当rsaType为OAEP时传值，不需要时传nil
 */
-func (m *myCipher) RSADecryptBytes(encryptData []byte, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
+func (m *myCipher) RSADecrypt(encryptData interface{}, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
 	if m.rsaPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
 	}
+	var cipherText []byte
+	switch t := encryptData.(type) {
+	case string:
+		cipherText, err = base64.StdEncoding.DecodeString(t)
+		if err != nil {
+			return
+		}
+	case []byte:
+		cipherText = t
+	default:
+		err = pkg.ErrInvalidCipherText
+		return
+	}
 	switch rsaType {
 	case RSAEncryptTypeOAEP:
-		originalData, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, m.rsaPrivateKey, encryptData, label)
+		originalData, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, m.rsaPrivateKey, cipherText, label)
 
 	case RSAEncryptTypePKCS1v15:
-		originalData, err = rsa.DecryptPKCS1v15(rand.Reader, m.rsaPrivateKey, encryptData)
+		originalData, err = rsa.DecryptPKCS1v15(rand.Reader, m.rsaPrivateKey, cipherText)
 
 	default:
 		err = pkg.ErrInvalidRSAType
 		return
 	}
 	return
-}
-
-/*
-	RSA解密字符串
-*/
-func (m *myCipher) RSADecryptString(encryptData string, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
-	encryptBytes, err := base64.StdEncoding.DecodeString(encryptData)
-	if err != nil {
-		return
-	}
-	return m.RSADecryptBytes(encryptBytes, rsaType, label)
 }
 
 /*
@@ -204,7 +205,7 @@ func (m *myCipher) RSADecryptString(encryptData string, rsaType rSAEncryptType, 
 	signType: 签名算法类型(SignTypePKCS1v15和SignTypePSS)
 	hashType: hash计算类型
 */
-func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignTyp, hashType crypto.Hash) (signedData []byte, err error) {
+func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignType, hashType crypto.Hash) (signedData []byte, err error) {
 	/*	签名流程:
 		1. 获取用于签名的私钥
 		2. 计算原始数据的hash值
@@ -233,7 +234,7 @@ func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignTyp, hashTyp
 }
 
 //签名字符串
-func (m *myCipher) RSASignToString(data interface{}, signType rSASignTyp, hashType crypto.Hash) (string, error) {
+func (m *myCipher) RSASignToString(data interface{}, signType rSASignType, hashType crypto.Hash) (string, error) {
 	signBytes, err := m.RSASignToBytes(data, signType, hashType)
 	if err != nil {
 		return "", err
@@ -251,7 +252,7 @@ func (m *myCipher) RSASignToString(data interface{}, signType rSASignTyp, hashTy
 	signType: 签名算法类型, 与签名时的对应一致
 	hashType: hash类型, 与签名时的对应一致
 */
-func (m *myCipher) RSAVerifySignBytes(signedData []byte, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
+func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, signType rSASignType, hashType crypto.Hash) (ok bool, err error) {
 	/*	验证签名流程:
 		1. 获取公钥信息
 		2. 计算原始数据的hash值
@@ -269,26 +270,31 @@ func (m *myCipher) RSAVerifySignBytes(signedData []byte, originalData interface{
 		return false, err
 	}
 
+	var sig []byte
+	switch t := signedData.(type) {
+	case string:
+		sig, err = base64.StdEncoding.DecodeString(t)
+		if err != nil {
+			return
+		}
+	case []byte:
+		sig = t
+	default:
+		err = pkg.ErrInvalidCipherText
+		return
+	}
+
 	//验证签名
 	switch signType {
 	case RSASignTypePKCS1v15:
-		err = rsa.VerifyPKCS1v15(&m.rsaPrivateKey.PublicKey, hashType, hashed, signedData)
+		err = rsa.VerifyPKCS1v15(&m.rsaPrivateKey.PublicKey, hashType, hashed, sig)
 	case RSASignTypePSS:
-		err = rsa.VerifyPSS(&m.rsaPrivateKey.PublicKey, hashType, hashed, signedData, nil)
+		err = rsa.VerifyPSS(&m.rsaPrivateKey.PublicKey, hashType, hashed, sig, nil)
 	default:
 		err = pkg.ErrInvalidSignType
 	}
 
 	return err == nil, err
-}
-
-//验证字符串签名
-func (m *myCipher) RSAVerifySignString(signedData string, originalData interface{}, signType rSASignTyp, hashType crypto.Hash) (ok bool, err error) {
-	signBytes, err := base64.StdEncoding.DecodeString(signedData)
-	if err != nil {
-		return false, err
-	}
-	return m.RSAVerifySignBytes(signBytes, originalData, signType, hashType)
 }
 
 func getPrivateKey(privateFile string, pkcsLevel pKCSLevel) (keyData *rsa.PrivateKey, err error) {

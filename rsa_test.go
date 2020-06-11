@@ -27,7 +27,7 @@ func TestAsyCipher_RSAEncryptToBytes(t *testing.T) {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after encrypt, cipher text is: %s\n", encryptData)
-	originalData, err := s.RSADecryptBytes(encryptData, RSAEncryptTypePKCS1v15, label)
+	originalData, err := s.RSADecrypt(encryptData, RSAEncryptTypePKCS1v15, label)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -52,7 +52,7 @@ func TestAsyCipher_RSAEncryptToString(t *testing.T) {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after encrypt, cipher text is: %s\n", encryptString)
-	originalString, err := s.RSADecryptString(encryptString, RSAEncryptTypeOAEP, nil)
+	originalString, err := s.RSADecrypt(encryptString, RSAEncryptTypeOAEP, nil)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -73,7 +73,7 @@ func TestAsyCipher_RSASignToBytes(t *testing.T) {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after sign, sign data is: %s\n", signData)
-	ok, err := s.RSAVerifySignBytes(signData, dataStr, RSASignTypePSS, crypto.SHA256)
+	ok, err := s.RSAVerify(signData, dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -91,7 +91,7 @@ func TestAsyCipher_RSASignToString(t *testing.T) {
 		t.Fatalf("%v\n", err)
 	}
 	t.Logf("after sign, sign data is: %s\n", signData)
-	ok, err := s.RSAVerifySignString(signData, dataStr, RSASignTypePSS, crypto.SHA256)
+	ok, err := s.RSAVerify(signData, dataStr, RSASignTypePSS, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
