@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	h = NewHasher()
+	h = defaultHasher
 )
 
 func TestMyHasher_HashToBytes(t *testing.T) {

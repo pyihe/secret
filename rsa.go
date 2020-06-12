@@ -45,6 +45,10 @@ func (m *myCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
 	return nil
 }
 
+func (m *myCipher) GetNonce() []byte {
+	return m.nonce
+}
+
 /*	生成RSA密钥对
 	参数解析:
 	bits: 密钥的长度
@@ -216,8 +220,7 @@ func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignType, hashTy
 		return
 	}
 
-	hasher := NewHasher()
-	hashed, err := hasher.HashToBytes(data, hashType)
+	hashed, err := defaultHasher.HashToBytes(data, hashType)
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +267,7 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 		return
 	}
 	//计算原始数据的hash值
-	hasher := NewHasher()
-	hashed, err := hasher.HashToBytes(originalData, hashType)
+	hashed, err := defaultHasher.HashToBytes(originalData, hashType)
 	if err != nil {
 		return false, err
 	}

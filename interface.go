@@ -3,6 +3,7 @@ package secret
 import (
 	"crypto"
 	"crypto/dsa"
+	"crypto/ed25519"
 )
 
 /*
@@ -33,6 +34,8 @@ type Cipher interface {
 	//RSA
 	//设置密钥
 	SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error
+	//
+	GetNonce() []byte
 	//生成密钥对
 	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte
@@ -63,18 +66,20 @@ type Hasher interface {
 type Signer interface {
 	//ECC椭圆曲线签名
 	SetECCKey(privateFile string) error
-	GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error)
+	GenerateECCKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error)
 	EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
 	EccSignToString(data interface{}, hashType crypto.Hash) (string, error)
 	EccVerify(signData interface{}, originalData interface{}, hashType crypto.Hash) (ok bool, err error)
 
 	//DSA签名
-	SetDSAKey(size dsa.ParameterSizes) (err error)
+	GenerateDSAKey(size dsa.ParameterSizes) (err error)
+	GetDSAPrivateKey() *dsa.PrivateKey
 	DSASignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
 	DSASignToString(data interface{}, hashType crypto.Hash) (string, error)
 	DSAVerify(data interface{}, signed interface{}, hashType crypto.Hash) (bool, error)
 
 	//Ed25519签名
+	GetEd25519Key() (ed25519.PublicKey, ed25519.PrivateKey)
 	Ed25519SignToBytes(data interface{}) ([]byte, error)
 	Ed25519SignToString(data interface{}) (string, error)
 	Ed25519Verify(data interface{}, signed interface{}) (bool, error)

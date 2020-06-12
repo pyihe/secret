@@ -25,10 +25,6 @@ const (
 	ECCCurveTypeP521
 )
 
-var (
-	defaultSigner = &mySigner{}
-)
-
 type eccCurveType uint
 
 type mySigner struct {
@@ -39,7 +35,7 @@ type mySigner struct {
 }
 
 func NewSigner() Signer {
-	return defaultSigner
+	return &mySigner{}
 }
 
 //如果是既有的密钥对，需要调用此方法设置ECC私钥
@@ -52,11 +48,27 @@ func (m *mySigner) SetECCKey(privateFile string) error {
 	return nil
 }
 
+func (m *mySigner) GetDSAPrivateKey() *dsa.PrivateKey {
+	return m.dsaPrivateKey
+}
+
+func (m *mySigner) GetEd25519Key() (ed25519.PublicKey, ed25519.PrivateKey) {
+	if len(m.ed25519PublicKey) == 0 || len(m.ed25519PrivateKey) == 0 {
+		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, nil
+		}
+		m.ed25519PrivateKey = privateKey
+		m.ed25519PublicKey = publicKey
+	}
+	return m.ed25519PublicKey, m.ed25519PrivateKey
+}
+
 /*
 	ECC签名相关
 */
 //生成椭圆曲线密钥对
-func (m *mySigner) GenerateEccKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error) {
+func (m *mySigner) GenerateECCKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error) {
 	c, err := getCurveInstance(curveType)
 	if err != nil {
 		return
@@ -110,8 +122,7 @@ func (m *mySigner) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byt
 	if m.eccPrivateKey == nil {
 		return nil, pkg.ErrNoPrivateKey
 	}
-	hasher := NewHasher()
-	hash, err := hasher.HashToBytes(data, hashType)
+	hash, err := defaultHasher.HashToBytes(data, hashType)
 	if err != nil {
 		return nil, err
 	}
@@ -149,8 +160,7 @@ func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashT
 		err = pkg.ErrNoPrivateKey
 		return
 	}
-	hasher := NewHasher()
-	hash, err := hasher.HashToBytes(originalData, hashType)
+	hash, err := defaultHasher.HashToBytes(originalData, hashType)
 	if err != nil {
 		return
 	}
@@ -185,7 +195,7 @@ func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashT
 /*
 	DSA签名相关
 */
-func (m *mySigner) SetDSAKey(size dsa.ParameterSizes) (err error) {
+func (m *mySigner) GenerateDSAKey(size dsa.ParameterSizes) (err error) {
 	var param dsa.Parameters
 	if err = dsa.GenerateParameters(&param, rand.Reader, size); err != nil {
 		return
@@ -206,7 +216,7 @@ func (m *mySigner) DSASignToBytes(data interface{}, hashType crypto.Hash) ([]byt
 	if m.dsaPrivateKey == nil {
 		return nil, pkg.ErrNoPrivateKey
 	}
-	hash, err := NewHasher().HashToBytes(data, hashType)
+	hash, err := defaultHasher.HashToBytes(data, hashType)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +251,7 @@ func (m *mySigner) DSAVerify(data interface{}, signed interface{}, hashType cryp
 	if m.dsaPrivateKey == nil {
 		return false, pkg.ErrNoPrivateKey
 	}
-	hash, err := NewHasher().HashToBytes(data, hashType)
+	hash, err := defaultHasher.HashToBytes(data, hashType)
 	if err != nil {
 		return false, err
 	}
@@ -273,17 +283,19 @@ func (m *mySigner) DSAVerify(data interface{}, signed interface{}, hashType cryp
 }
 
 func (m *mySigner) Ed25519SignToBytes(data interface{}) ([]byte, error) {
-	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, err
+	if len(m.ed25519PublicKey) == 0 || len(m.ed25519PrivateKey) == 0 {
+		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		m.ed25519PrivateKey = privateKey
+		m.ed25519PublicKey = publicKey
 	}
 	bytes, err := getBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	result := ed25519.Sign(privateKey, bytes)
-	m.ed25519PrivateKey = privateKey
-	m.ed25519PublicKey = publicKey
+	result := ed25519.Sign(m.ed25519PrivateKey, bytes)
 	return result, nil
 }
 
@@ -297,6 +309,9 @@ func (m *mySigner) Ed25519SignToString(data interface{}) (string, error) {
 }
 
 func (m *mySigner) Ed25519Verify(data interface{}, signed interface{}) (bool, error) {
+	if len(m.ed25519PublicKey) == 0 {
+		return false, pkg.ErrNoPrivateKey
+	}
 	bytes, err := getBytes(data)
 	if err != nil {
 		return false, err

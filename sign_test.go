@@ -22,7 +22,7 @@ var (
 	}
 )
 func TestMyCipher_GenerateEccKey(t *testing.T) {
-	priFile, pubFile, err := signer.GenerateEccKey(ECCCurveTypeP224, "./conf")
+	priFile, pubFile, err := signer.GenerateECCKey(ECCCurveTypeP224, "./conf")
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -60,7 +60,7 @@ func TestAsyCipher_EccSignToString(t *testing.T) {
 }
 
 func TestMySigner_DSASignToString(t *testing.T) {
-	err := signer.SetDSAKey(dsa.L1024N160)
+	err := signer.GenerateDSAKey(dsa.L1024N160)
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}

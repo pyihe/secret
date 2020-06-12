@@ -31,10 +31,6 @@ const (
 	BlockModeGCM
 )
 
-var (
-	defaultCipher = &myCipher{}
-)
-
 type (
 	symType   uint
 	blockMode uint
@@ -57,7 +53,7 @@ type (
 )
 
 func NewCipher() Cipher {
-	return defaultCipher
+	return &myCipher{}
 }
 
 func (m *myCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error) {
