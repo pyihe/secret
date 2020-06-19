@@ -3,11 +3,14 @@ usual encryption algorithm written in go
 
 #### Function
 ##### Cipher
-|Name|BlockMode|Padding|
-|:---|:----------|:------|
-|DES |CBC/ECB/CFB/OFB/CTR |PKCS#5/PKCS#7/Zero/None|
-|3DES|CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
-|AES |CBC/ECB/CFB/OFB/CTR|PKCS#5/PKCS#7/Zero/None|
+|Type|Mode|Padding|
+|:----|:----|:----|
+|DES|ECB/CBC|PKCS5/PKCS7/Zero/None|
+|3DES|ECB/CBC|PKCS5/PKCS7/Zero/None|
+|AES|ECB/CBC|PKCS5/PKCS7/Zero/None|
+|DES|CFB/OFB/CTR/GCM||
+|3DES|CFB/OFB/CTR/GCM||
+|AES|CFB/OFB/CTR/GCM||
 |RC4 |-|-|
 |RSA|Encrypt/Decrypt/Sign/Verify|-|
 
@@ -22,6 +25,7 @@ usual encryption algorithm written in go
 |:---|:----------|
 |ECC(ECDSA) |Sign/Verify|
 |DSA|Sign/Verify|
+|EdDSA|Sign/Verify|
 
 
 #### Example
