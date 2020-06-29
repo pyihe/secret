@@ -24,6 +24,9 @@ type Cipher interface {
 	RC4Decrypt(encryptData interface{}, key []byte) ([]byte, error)
 
 	//AES/DES/3DES
+	//
+	GetGCMNonce() []byte
+	SetGCMNonce(nonce []byte)
 	//加密，返回[]byte
 	SymEncryptToBytes(request *SymRequest) (encryptData []byte, err error)
 	//加密，返回base64 string
@@ -34,9 +37,6 @@ type Cipher interface {
 	//RSA
 	//设置密钥
 	SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error
-	//
-	GetGCMNonce() []byte
-	SetGCMNonce(nonce []byte)
 	//生成密钥对
 	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte
