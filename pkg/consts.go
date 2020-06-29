@@ -16,4 +16,7 @@ var (
 	ErrPemReadFail        = errors.New("pem read fail")
 	ErrInvalidCipherText  = errors.New("invalid cipher data type")
 	ErrInvalidNonce       = errors.New("invalid nonce for gcm")
+	ErrPaddingType        = errors.New("please check your padding type")
+	ErrNoKey              = errors.New("key is empty")
+	ErrNoCipher           = errors.New("data is empty")
 )

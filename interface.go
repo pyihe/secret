@@ -24,9 +24,8 @@ type Cipher interface {
 	RC4Decrypt(encryptData interface{}, key []byte) ([]byte, error)
 
 	//AES/DES/3DES
-	//
-	GetGCMNonce() []byte
-	SetGCMNonce(nonce []byte)
+	GetGCMNonce() []byte      //GCM模式下获取nonce，需要传递给解密方
+	SetGCMNonce(nonce []byte) //如果使用GCM模式解密，需要通过此方法设置nonce，再执行解密
 	//加密，返回[]byte
 	SymEncryptToBytes(request *SymRequest) (encryptData []byte, err error)
 	//加密，返回base64 string

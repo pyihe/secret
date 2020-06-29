@@ -30,73 +30,62 @@ usual encryption algorithm written in go
 
 #### Example
 ```go
-//RSA encrypt, decrypt
-var data  = "usual encryption algorithm written in go"
-var label = []byte("label")
-c := secret.NewCipher()
-//if GenerateRSAKey is not called, then you must call SetRSAKey to set yourself private key.
-//SetRSAKey is not necessary if GenerateRSAKey is called.
-//c.SetRSAKey("your privateKey file", secret.PKCSLevel1)
-_, _, err := c.GenerateRSAKey(1024, "conf", secret.PKCSLevel1)
-if err != nil {
-    log.Fatalf("exit with generate key err: %v\n", err)
+package main
+
+import (
+    "fmt"
+    "github.com/pyihe/secret"
+)
+
+func main() {
+    c := secret.NewCipher()
+    //encrypt
+    var encryptReq = &secret.SymRequest{
+        PlainData:   "I Love China!",
+        Key:         []byte("1234567812345678"),
+        Type:        secret.SymTypeAES,
+        ModeType:    secret.BlockModeGCM,
+        PaddingType: secret.PaddingTypeNoPadding,
+        AddData:     []byte("this is additional data"),
+    }
+    cipherStr, err := c.SymEncryptToString(encryptReq)
+    if err != nil {
+        //handle err
+    }
+    nonce := c.GetGCMNonce() //nonce need to be transfer to Decoder
+    
+    //decrypt
+    c.SetGCMNonce(nonce) //if decrypts in another server, then your need to set nonce to decrypt
+    var decryptReq = &secret.SymRequest{
+        PlainData:   nil,
+        CipherData:  cipherStr,
+        Key:         []byte("1234567812345678"),
+        Type:        secret.SymTypeAES,
+        ModeType:    secret.BlockModeGCM,
+        PaddingType: secret.PaddingTypeNoPadding,
+        AddData:     []byte("this is additional data"),
+    }
+    plainBytes, err := c.SymDecrypt(decryptReq)
+    if err != nil {
+        //handle err
+    }
+    //unmarshal plainBytes or use it directly
+    
+    //c.SetRSAKey(privateKey, secret.PKCSLevel1) to set key if key is already exist
+    _, _, err = c.GenerateRSAKey(4096, "../conf", secret.PKCSLevel1)
+    if err != nil {
+        //handle err
+    }
+    
+    cipherStr, err = c.RSAEncryptToString(plainBytes, secret.RSAEncryptTypeOAEP, nil)
+    if err != nil {
+        //handle err
+    }
+    plainBytes, err = c.RSADecrypt(cipherStr, secret.RSAEncryptTypeOAEP, nil)
+    if err != nil {
+        //handle err
+    }
+    //output: I Love China!
+    fmt.Printf("%s\n", plainBytes)
 }
-encryptData, err := c.RSAEncryptToString(data, secret.RSAEncryptTypeOAEP, label)
-if err != nil {
-    log.Fatalf("exit with encrypt err: %v\n", err)
-}
-log.Printf("after encrypt, encrypt data = %s\n", encryptData)
-originalData, err := c.RSADecrypt(encryptData, secret.RSAEncryptTypeOAEP, label)
-if err != nil {
-    log.Fatalf("exit with decrypt err: %v\n", err)
-}
-log.Printf("after decrypt, data = %s\n", originalData)
 ```
-run result:
-
-![](pic/rsa.jpg)
-
-
-```go
-//AES encrypt, decrypt
-s := secret.NewCipher()
-var cipherReq = &SymRequest{
-    PlainData:   "usual encryption algorithm written in go",
-    CipherData:  nil,
-    Key:         []byte("1234567812345678"),
-    Type:        SymTypeAES,
-    ModeType:    BlockModeGCM,
-    PaddingType: PaddingTypeNoPadding,
-    AddData:     nil,
-}
-cipherText, err := s.SymEncryptToString(cipherReq)
-if err != nil {
-    log.Fatalf("exit in SymEncryptString with err: %v\n", err)
-}
-log.Printf("cipher text = %s\n", cipherText)
-var decryptReq = &SymRequest{
-    PlainData:   nil,
-    CipherData:  cipherText,
-    Key:         []byte("1234567812345678"),
-    Type:        SymTypeAES,
-    ModeType:    BlockModeGCM,
-    PaddingType: PaddingTypeNoPadding,
-    AddData:     nil,
-}
-plainText, err := s.SymDecrypt(decryptReq)
-if err != nil {
-    log.Fatalf("exit in SymDecryptString with err: %v\n", err)
-}
-log.Printf("plain text = %s\n", plainText)
-
-//hash
-h := secret.NewHasher()
-hashString, err := h.HashToString(data, crypto.SHA256)
-if err != nil {
-    log.Fatalf("exit with HashToString err: %v\n", err)
-}
-log.Printf("hash result = %v\n", hashString)
-```
-run result: 
-
-![](pic/sym.jpg)

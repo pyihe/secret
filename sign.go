@@ -167,11 +167,17 @@ func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashT
 	var sig []byte
 	switch t := signed.(type) {
 	case string:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return false, err
 		}
 	case []byte:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig = t
 	default:
 		return false, pkg.ErrInvalidCipherText
@@ -258,11 +264,17 @@ func (m *mySigner) DSAVerify(data interface{}, signed interface{}, hashType cryp
 	var sig []byte
 	switch t := signed.(type) {
 	case string:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return false, err
 		}
 	case []byte:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig = t
 	default:
 		return false, pkg.ErrInvalidCipherText
@@ -319,11 +331,17 @@ func (m *mySigner) Ed25519Verify(data interface{}, signed interface{}) (bool, er
 	var sig []byte
 	switch t := signed.(type) {
 	case string:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return false, err
 		}
 	case []byte:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig = t
 	default:
 		return false, pkg.ErrInvalidCipherText

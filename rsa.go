@@ -180,11 +180,17 @@ func (m *myCipher) RSADecrypt(encryptData interface{}, rsaType rSAEncryptType, l
 	var cipherText []byte
 	switch t := encryptData.(type) {
 	case string:
+		if len(t) == 0 {
+			return nil, pkg.ErrNoCipher
+		}
 		cipherText, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return
 		}
 	case []byte:
+		if len(t) == 0 {
+			return nil, pkg.ErrNoCipher
+		}
 		cipherText = t
 	default:
 		err = pkg.ErrInvalidCipherText
@@ -279,11 +285,17 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 	var sig []byte
 	switch t := signedData.(type) {
 	case string:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return
 		}
 	case []byte:
+		if len(t) == 0 {
+			return false, pkg.ErrNoCipher
+		}
 		sig = t
 	default:
 		err = pkg.ErrInvalidCipherText

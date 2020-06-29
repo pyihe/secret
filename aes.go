@@ -48,7 +48,7 @@ type (
 		Type        symType     //加密类型
 		ModeType    blockMode   //分组方式
 		PaddingType paddingType //填充方式
-		AddData     []byte      //GCM模式下额外的验证数据
+		AddData     []byte      //GCM模式下额外的验证数据, 如果使用GCM模式, 需要将nonce传递给解密方
 	}
 )
 
@@ -57,6 +57,9 @@ func NewCipher() Cipher {
 }
 
 func (m *myCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, error) {
+	if len(key) == 0 {
+		return nil, pkg.ErrNoKey
+	}
 	c, err := rc4.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -72,6 +75,9 @@ func (m *myCipher) RC4EncryptToBytes(data interface{}, key []byte) ([]byte, erro
 }
 
 func (m *myCipher) RC4EncryptToString(data interface{}, key []byte) (string, error) {
+	if len(key) == 0 {
+		return "", pkg.ErrNoKey
+	}
 	c, err := rc4.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -92,11 +98,17 @@ func (m *myCipher) RC4Decrypt(encryptData interface{}, key []byte) ([]byte, erro
 	var err error
 	switch t := encryptData.(type) {
 	case string:
+		if len(t) == 0 {
+			return nil, pkg.ErrNoCipher
+		}
 		cipherText, err = base64.StdEncoding.DecodeString(t)
 		if err != nil {
 			return nil, err
 		}
 	case []byte:
+		if len(t) == 0 {
+			return nil, pkg.ErrNoCipher
+		}
 		cipherText = t
 	default:
 		return nil, pkg.ErrInvalidCipherText
@@ -115,6 +127,9 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 	if request == nil {
 		err = pkg.ErrInvalidRequest
 		return
+	}
+	if len(request.Key) == 0 {
+		return nil, pkg.ErrNoKey
 	}
 	var originalData []byte
 	originalData, err = getBytes(request.PlainData)
@@ -142,6 +157,12 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 	switch request.ModeType {
 	case BlockModeECB:
 		//填充
+		if request.PaddingType != PaddingTypePKCS5 &&
+			request.PaddingType != PaddingTypePKCS7 &&
+			request.PaddingType != PaddingTypeZeros {
+			err = pkg.ErrPaddingType
+			return
+		}
 		originalData = padding(originalData, blockSize, request.PaddingType)
 		encryptData = make([]byte, len(originalData))
 		var temp = encryptData
@@ -152,6 +173,12 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 		}
 	case BlockModeCBC:
 		//填充
+		if request.PaddingType != PaddingTypePKCS5 &&
+			request.PaddingType != PaddingTypePKCS7 &&
+			request.PaddingType != PaddingTypeZeros {
+			err = pkg.ErrPaddingType
+			return
+		}
 		originalData = padding(originalData, blockSize, request.PaddingType)
 		encryptData = make([]byte, len(originalData))
 		blockMode := cipher.NewCBCEncrypter(block, request.Key[:blockSize])
@@ -174,12 +201,10 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 		if err != nil {
 			return nil, err
 		}
-		if len(m.nonce) == 0 {
-			m.nonce = make([]byte, 12)
-			_, err = io.ReadFull(rand.Reader, m.nonce)
-			if err != nil {
-				return
-			}
+		m.nonce = make([]byte, 12)
+		_, err = io.ReadFull(rand.Reader, m.nonce)
+		if err != nil {
+			return
 		}
 		encryptData = gcm.Seal(nil, m.nonce, originalData, request.AddData)
 	default:
@@ -209,6 +234,9 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 	if request == nil {
 		err = pkg.ErrInvalidRequest
 		return
+	}
+	if len(request.Key) == 0 {
+		return nil, pkg.ErrNoKey
 	}
 	var encryptData []byte
 	if request.CipherData == nil {
@@ -246,6 +274,12 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 
 	switch request.ModeType {
 	case BlockModeECB:
+		if request.PaddingType != PaddingTypePKCS5 &&
+			request.PaddingType != PaddingTypePKCS7 &&
+			request.PaddingType != PaddingTypeZeros {
+			err = pkg.ErrPaddingType
+			return
+		}
 		temp := originalData
 		for len(encryptData) > 0 {
 			block.Decrypt(temp, encryptData[:blockSize])
@@ -255,6 +289,12 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 		//去填充
 		originalData = unPadding(originalData, request.PaddingType)
 	case BlockModeCBC:
+		if request.PaddingType != PaddingTypePKCS5 &&
+			request.PaddingType != PaddingTypePKCS7 &&
+			request.PaddingType != PaddingTypeZeros {
+			err = pkg.ErrPaddingType
+			return
+		}
 		blockMode := cipher.NewCBCDecrypter(block, request.Key[:blockSize])
 		blockMode.CryptBlocks(originalData, encryptData)
 		//去填充
