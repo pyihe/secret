@@ -276,6 +276,7 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 		}
 		if len(m.nonce) == 0 {
 			err = pkg.ErrInvalidNonce
+			return
 		}
 		originalData, err = gcm.Open(nil, m.nonce, encryptData, request.AddData)
 	default:

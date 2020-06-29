@@ -45,8 +45,12 @@ func (m *myCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
 	return nil
 }
 
-func (m *myCipher) GetNonce() []byte {
+func (m *myCipher) GetGCMNonce() []byte {
 	return m.nonce
+}
+
+func (m *myCipher) SetGCMNonce(nonce []byte) {
+	m.nonce = nonce
 }
 
 /*	生成RSA密钥对

@@ -35,7 +35,8 @@ type Cipher interface {
 	//设置密钥
 	SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error
 	//
-	GetNonce() []byte
+	GetGCMNonce() []byte
+	SetGCMNonce(nonce []byte)
 	//生成密钥对
 	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte
