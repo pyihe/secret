@@ -59,15 +59,31 @@ run result:
 
 ```go
 //AES encrypt, decrypt
-data = "usual encryption algorithm written in go"
-key  = "1234567812345678"
 s := secret.NewCipher()
-cipherText, err := s.SymEncryptToString(data, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
+var cipherReq = &SymRequest{
+    PlainData:   "usual encryption algorithm written in go",
+    CipherData:  nil,
+    Key:         []byte("1234567812345678"),
+    Type:        SymTypeAES,
+    ModeType:    BlockModeGCM,
+    PaddingType: PaddingTypeNoPadding,
+    AddData:     nil,
+}
+cipherText, err := s.SymEncryptToString(cipherReq)
 if err != nil {
     log.Fatalf("exit in SymEncryptString with err: %v\n", err)
 }
 log.Printf("cipher text = %s\n", cipherText)
-plainText, err := s.SymDecrypt(cipherText, key, secret.SymTypeAES, secret.BlockModeECB, secret.PaddingTypeZeros)
+var decryptReq = &SymRequest{
+    PlainData:   nil,
+    CipherData:  cipherText,
+    Key:         []byte("1234567812345678"),
+    Type:        SymTypeAES,
+    ModeType:    BlockModeGCM,
+    PaddingType: PaddingTypeNoPadding,
+    AddData:     nil,
+}
+plainText, err := s.SymDecrypt(decryptReq)
 if err != nil {
     log.Fatalf("exit in SymDecryptString with err: %v\n", err)
 }
