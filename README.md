@@ -52,10 +52,12 @@ func main() {
     if err != nil {
         //handle err
     }
-    nonce := c.GetGCMNonce() //nonce need to be transfer to Decoder
+    //nonce need to be transfer to Decoder when use GCM mode
+    nonce := c.GetGCMNonce() 
     
     //decrypt
-    c.SetGCMNonce(nonce) //if decrypts in another server, then your need to set nonce to decrypt
+    //if decrypts in another server with GCM mode, then your need to set nonce to decrypt
+    c.SetGCMNonce(nonce) 
     var decryptReq = &secret.SymRequest{
         PlainData:   nil,
         CipherData:  cipherStr,
