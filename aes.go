@@ -8,8 +8,9 @@ import (
 	"crypto/rc4"
 	"crypto/rsa"
 	"encoding/base64"
-	"github.com/pyihe/secret/pkg"
 	"io"
+
+	"github.com/pyihe/secret/pkg"
 )
 
 /*
@@ -49,6 +50,7 @@ type (
 		Type        symType     //加密类型
 		ModeType    blockMode   //分组方式
 		PaddingType paddingType //填充方式
+		Iv          []byte      //iv
 		AddData     []byte      //GCM模式下额外的验证数据, 如果使用GCM模式, 需要将nonce传递给解密方
 	}
 )
@@ -153,6 +155,9 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 	}
 
 	blockSize := block.BlockSize()
+	if len(request.Iv) == 0 {
+		request.Iv = request.Key[:blockSize]
+	}
 
 	//加密模式选择: ECB, CBC, CFB, OFB
 	switch request.ModeType {
@@ -182,19 +187,19 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 		}
 		originalData = padding(originalData, blockSize, request.PaddingType)
 		encryptData = make([]byte, len(originalData))
-		blockMode := cipher.NewCBCEncrypter(block, request.Key[:blockSize])
+		blockMode := cipher.NewCBCEncrypter(block, request.Iv)
 		blockMode.CryptBlocks(encryptData, originalData)
 	case BlockModeCFB:
 		encryptData = make([]byte, len(originalData))
-		blockStream := cipher.NewCFBEncrypter(block, request.Key[:blockSize])
+		blockStream := cipher.NewCFBEncrypter(block, request.Iv)
 		blockStream.XORKeyStream(encryptData, originalData)
 	case BlockModeOFB:
 		encryptData = make([]byte, len(originalData))
-		stream := cipher.NewOFB(block, request.Key[:blockSize])
+		stream := cipher.NewOFB(block, request.Iv)
 		stream.XORKeyStream(encryptData, originalData)
 	case BlockModeCTR:
 		encryptData = make([]byte, len(originalData))
-		stream := cipher.NewCTR(block, request.Key[:blockSize])
+		stream := cipher.NewCTR(block, request.Iv)
 		stream.XORKeyStream(encryptData, originalData)
 	case BlockModeGCM:
 		var gcm cipher.AEAD
@@ -271,6 +276,9 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 		return
 	}
 	blockSize := block.BlockSize()
+	if len(request.Iv) == 0 {
+		request.Iv = request.Key[:blockSize]
+	}
 	originalData = make([]byte, len(encryptData))
 
 	switch request.ModeType {
@@ -296,18 +304,18 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 			err = pkg.ErrPaddingType
 			return
 		}
-		blockMode := cipher.NewCBCDecrypter(block, request.Key[:blockSize])
+		blockMode := cipher.NewCBCDecrypter(block, request.Iv)
 		blockMode.CryptBlocks(originalData, encryptData)
 		//去填充
 		originalData = unPadding(originalData, request.PaddingType)
 	case BlockModeOFB:
-		stream := cipher.NewOFB(block, request.Key[:blockSize])
+		stream := cipher.NewOFB(block, request.Iv)
 		stream.XORKeyStream(originalData, encryptData)
 	case BlockModeCFB:
-		blockStream := cipher.NewCFBDecrypter(block, request.Key[:blockSize])
+		blockStream := cipher.NewCFBDecrypter(block, request.Iv)
 		blockStream.XORKeyStream(originalData, encryptData)
 	case BlockModeCTR:
-		stream := cipher.NewCTR(block, request.Key[:blockSize])
+		stream := cipher.NewCTR(block, request.Iv)
 		stream.XORKeyStream(originalData, encryptData)
 	case BlockModeGCM:
 		var gcm cipher.AEAD
