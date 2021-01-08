@@ -38,6 +38,7 @@ type (
 	myCipher struct {
 		nonce         []byte          // 用于GCM模式
 		rsaPrivateKey *rsa.PrivateKey //RSA密钥
+		rsaPublicKey  *rsa.PublicKey  //RSA公钥
 	}
 
 	//对称加密消息请求

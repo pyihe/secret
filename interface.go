@@ -34,8 +34,10 @@ type Cipher interface {
 	SymDecrypt(request *SymRequest) (originalData []byte, err error)
 
 	//RSA
-	//设置密钥
-	SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error
+	//设置私钥
+	SetRSAPrivateKey(privateFile interface{}, pkcsLevel pKCSLevel) error
+	//设置公钥
+	SetRSAPublicKey(publicData interface{}, level pKCSLevel) error
 	//生成密钥对
 	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte

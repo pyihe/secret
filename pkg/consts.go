@@ -19,4 +19,5 @@ var (
 	ErrPaddingType        = errors.New("please check your padding type")
 	ErrNoKey              = errors.New("key is empty")
 	ErrNoCipher           = errors.New("data is empty")
+	ErrInvalidKeyDataType = errors.New("nonsupport data type")
 )

@@ -8,10 +8,11 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/pyihe/secret/pkg"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/pyihe/secret/pkg"
 )
 
 const (
@@ -36,12 +37,57 @@ type (
 )
 
 //如果是既有的密钥对，需要调用此方法设置RSA私钥(pkcsLevel 为生成密钥时的规范，默认为PKCSLevel1)
-func (m *myCipher) SetRSAKey(privateFile string, pkcsLevel pKCSLevel) error {
-	privateKey, err := getPrivateKey(privateFile, pkcsLevel)
-	if err != nil {
-		return err
+func (m *myCipher) SetRSAPrivateKey(privateData interface{}, pkcsLevel pKCSLevel) error {
+	switch data := privateData.(type) {
+	case *rsa.PrivateKey:
+		m.rsaPrivateKey = data
+	case string:
+		keyBytes, err := ioutil.ReadFile(data)
+		if err != nil {
+			return err
+		}
+		privateKey, err := getPrivateKey(keyBytes, pkcsLevel)
+		if err != nil {
+			return err
+		}
+		m.rsaPrivateKey = privateKey
+	case []byte:
+		privateKey, err := getPrivateKey(data, pkcsLevel)
+		if err != nil {
+			return err
+		}
+		m.rsaPrivateKey = privateKey
+
+	default:
+		return pkg.ErrInvalidKeyDataType
 	}
-	m.rsaPrivateKey = privateKey
+	return nil
+}
+
+func (m *myCipher) SetRSAPublicKey(publicData interface{}, level pKCSLevel) error {
+	switch data := publicData.(type) {
+	case *rsa.PublicKey:
+		m.rsaPublicKey = data
+	case string:
+		keyBytes, err := ioutil.ReadFile(data)
+		if err != nil {
+			return err
+		}
+		publicKey, err := getPublicKey(keyBytes, level)
+		if err != nil {
+			return err
+		}
+		m.rsaPublicKey = publicKey
+	case []byte:
+		publicKey, err := getPublicKey(data, level)
+		if err != nil {
+			return err
+		}
+		m.rsaPublicKey = publicKey
+
+	default:
+		return pkg.ErrInvalidKeyDataType
+	}
 	return nil
 }
 
@@ -120,6 +166,7 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	}
 	file.Close()
 	m.rsaPrivateKey = privateData
+	m.rsaPublicKey = &privateData.PublicKey
 
 	return privatePath, publicPath, nil
 }
@@ -133,9 +180,13 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	label: 当rsaType为OAEP时传值, 不需要时传nil(加密和解密时的label必须一致)
 */
 func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
-	if m.rsaPrivateKey == nil {
-		err = pkg.ErrNoPrivateKey
-		return
+	var publicKey = m.rsaPublicKey
+	if publicKey == nil {
+		if m.rsaPrivateKey == nil {
+			err = pkg.ErrNoPrivateKey
+			return
+		}
+		publicKey = &m.rsaPrivateKey.PublicKey
 	}
 	bytes, err := getBytes(originalData)
 	if err != nil {
@@ -143,9 +194,9 @@ func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryp
 	}
 	switch rsaType {
 	case RSAEncryptTypeOAEP:
-		encryptData, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, &m.rsaPrivateKey.PublicKey, bytes, label)
+		encryptData, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, bytes, label)
 	case RSAEncryptTypePKCS1v15:
-		encryptData, err = rsa.EncryptPKCS1v15(rand.Reader, &m.rsaPrivateKey.PublicKey, bytes)
+		encryptData, err = rsa.EncryptPKCS1v15(rand.Reader, publicKey, bytes)
 	}
 	return
 }
@@ -272,9 +323,13 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 		2. 验签
 	*/
 	//获取公钥数据
-	if m.rsaPrivateKey == nil {
-		err = pkg.ErrNoPrivateKey
-		return
+	var publicKey = m.rsaPublicKey
+	if publicKey == nil {
+		if m.rsaPrivateKey == nil {
+			err = pkg.ErrNoPrivateKey
+			return
+		}
+		publicKey = &m.rsaPrivateKey.PublicKey
 	}
 	//计算原始数据的hash值
 	hashed, err := defaultHasher.HashToBytes(originalData, hashType)
@@ -305,9 +360,9 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 	//验证签名
 	switch signType {
 	case RSASignTypePKCS1v15:
-		err = rsa.VerifyPKCS1v15(&m.rsaPrivateKey.PublicKey, hashType, hashed, sig)
+		err = rsa.VerifyPKCS1v15(publicKey, hashType, hashed, sig)
 	case RSASignTypePSS:
-		err = rsa.VerifyPSS(&m.rsaPrivateKey.PublicKey, hashType, hashed, sig, nil)
+		err = rsa.VerifyPSS(publicKey, hashType, hashed, sig, nil)
 	default:
 		err = pkg.ErrInvalidSignType
 	}
@@ -315,11 +370,7 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 	return err == nil, err
 }
 
-func getPrivateKey(privateFile string, pkcsLevel pKCSLevel) (keyData *rsa.PrivateKey, err error) {
-	keyBytes, err := ioutil.ReadFile(privateFile)
-	if err != nil {
-		return
-	}
+func getPrivateKey(keyBytes []byte, pkcsLevel pKCSLevel) (keyData *rsa.PrivateKey, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
 		err = pkg.ErrPemReadFail
@@ -331,7 +382,7 @@ func getPrivateKey(privateFile string, pkcsLevel pKCSLevel) (keyData *rsa.Privat
 		if err != nil {
 			return nil, err
 		}
-		keyData, _ = keyInterface.(*rsa.PrivateKey);
+		keyData, _ = keyInterface.(*rsa.PrivateKey)
 		if keyData == nil {
 			err = pkg.ErrPemReadFail
 			return nil, err
@@ -346,11 +397,7 @@ func getPrivateKey(privateFile string, pkcsLevel pKCSLevel) (keyData *rsa.Privat
 	return
 }
 
-func getPublicKey(publicFile string, pkcsLevel pKCSLevel) (keyData *rsa.PublicKey, err error) {
-	keyBytes, err := ioutil.ReadFile(publicFile)
-	if err != nil {
-		return
-	}
+func getPublicKey(keyBytes []byte, pkcsLevel pKCSLevel) (keyData *rsa.PublicKey, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
 		return nil, pkg.ErrPemReadFail
