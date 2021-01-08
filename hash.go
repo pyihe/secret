@@ -114,6 +114,11 @@ func (s *myHasher) MAC(hashType crypto.Hash, message, key []byte) (mac []byte) {
 	return
 }
 
+func (s *myHasher) MacToString(hashType crypto.Hash, message, key []byte) (mac string) {
+	bytes := s.MAC(hashType, message, key)
+	return hex.EncodeToString(bytes)
+}
+
 func (s *myHasher) CheckMac(hashType crypto.Hash, message, key, mac []byte) bool {
 	expectedMac := s.MAC(hashType, message, key)
 	return hmac.Equal(expectedMac, mac)

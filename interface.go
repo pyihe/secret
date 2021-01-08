@@ -61,6 +61,7 @@ type Hasher interface {
 	DoubleHashToString(data interface{}, hashType crypto.Hash) (hashString string, err error)
 	DoubleHashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
 	MAC(hashType crypto.Hash, message, key []byte) (mac []byte)
+	MacToString(hashType crypto.Hash, message, key []byte) (mac string)
 	CheckMac(hashType crypto.Hash, message, key, mac []byte) bool
 }
 
