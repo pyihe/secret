@@ -91,14 +91,6 @@ func (m *myCipher) SetRSAPublicKey(publicData interface{}, level pKCSLevel) erro
 	return nil
 }
 
-func (m *myCipher) GetGCMNonce() []byte {
-	return m.nonce
-}
-
-func (m *myCipher) SetGCMNonce(nonce []byte) {
-	m.nonce = nonce
-}
-
 /*	生成RSA密钥对
 	参数解析:
 	bits: 密钥的长度

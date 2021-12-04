@@ -4,12 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
-	"crypto/rand"
 	"crypto/rc4"
 	"crypto/rsa"
 	"encoding/base64"
-	"io"
-
 	"github.com/pyihe/secret/pkg"
 )
 
@@ -37,7 +34,6 @@ type (
 	blockMode uint
 
 	myCipher struct {
-		nonce         []byte          // 用于GCM模式
 		rsaPrivateKey *rsa.PrivateKey //RSA密钥
 		rsaPublicKey  *rsa.PublicKey  //RSA公钥
 	}
@@ -52,6 +48,7 @@ type (
 		PaddingType paddingType //填充方式
 		Iv          []byte      //iv
 		AddData     []byte      //GCM模式下额外的验证数据, 如果使用GCM模式, 需要将nonce传递给解密方
+		Nonce       []byte      // GCM模式下的加密、解密随机向量
 	}
 )
 
@@ -207,12 +204,7 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 		if err != nil {
 			return nil, err
 		}
-		m.nonce = make([]byte, 12)
-		_, err = io.ReadFull(rand.Reader, m.nonce)
-		if err != nil {
-			return
-		}
-		encryptData = gcm.Seal(nil, m.nonce, originalData, request.AddData)
+		encryptData = gcm.Seal(nil, request.Nonce, originalData, request.AddData)
 	default:
 		err = pkg.ErrInvalidBlockMode
 	}
@@ -323,11 +315,7 @@ func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err err
 		if err != nil {
 			return
 		}
-		if len(m.nonce) == 0 {
-			err = pkg.ErrInvalidNonce
-			return
-		}
-		originalData, err = gcm.Open(nil, m.nonce, encryptData, request.AddData)
+		originalData, err = gcm.Open(nil, request.Nonce, encryptData, request.AddData)
 	default:
 		err = pkg.ErrInvalidBlockMode
 	}
