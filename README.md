@@ -1,8 +1,11 @@
 # [secret](https://github.com/pyihe/secret)
+
 usual encryption algorithm written in go
 
 #### Function
+
 ##### Cipher
+
 |Type|Mode|Padding|
 |:----|:----|:----|
 |DES|ECB/CBC|PKCS5/PKCS7/Zero/None|
@@ -14,31 +17,37 @@ usual encryption algorithm written in go
 |RC4 |-|-|
 |RSA|Encrypt/Decrypt/Sign/Verify|-|
 
-##### Hash  
+##### Hash
+
 |Name|
 |:---|
 |Hash|
 |DoubleHash|
 
 ##### Sign&&Verify
+
 |Name|Description|
 |:---|:----------|
 |ECC(ECDSA) |Sign/Verify|
 |DSA|Sign/Verify|
 |EdDSA|Sign/Verify|
 
-
 #### Example
+
 ```go
 package main
 
 import (
-    "fmt"
-    "github.com/pyihe/secret"
+	"crypto/rand"
+	"fmt"
+	"github.com/pyihe/secret"
+	"io"
 )
 
 func main() {
-    c := secret.NewCipher()
+    var c = secret.NewCipher()
+    var nonce = make([]byte, 12) // 随机向量
+    _, _ = io.ReadFull(rand.Reader, nonce)
     //encrypt
     var encryptReq = &secret.SymRequest{
         PlainData:   "I Love China!",
@@ -47,17 +56,15 @@ func main() {
         ModeType:    secret.BlockModeGCM,
         PaddingType: secret.PaddingTypeNoPadding,
         AddData:     []byte("this is additional data"),
+        Nonce:       nonce,
     }
     cipherStr, err := c.SymEncryptToString(encryptReq)
     if err != nil {
         //handle err
     }
-    //nonce need to be transfer to Decoder when use GCM mode
-    nonce := c.GetGCMNonce() 
     
     //decrypt
     //if decrypts in another server with GCM mode, then your need to set nonce to decrypt
-    c.SetGCMNonce(nonce) 
     var decryptReq = &secret.SymRequest{
         PlainData:   nil,
         CipherData:  cipherStr,
@@ -66,6 +73,7 @@ func main() {
         ModeType:    secret.BlockModeGCM,
         PaddingType: secret.PaddingTypeNoPadding,
         AddData:     []byte("this is additional data"),
+        Nonce:       nonce, // this value must be the same with encryptReq
     }
     plainBytes, err := c.SymDecrypt(decryptReq)
     if err != nil {
