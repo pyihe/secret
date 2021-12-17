@@ -39,11 +39,11 @@ type Cipher interface {
 	//生成密钥对
 	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte
-	RSAEncryptToBytes(data interface{}, rsaType rSAEncryptType, label []byte) (cipherBytes []byte, err error)
+	RSAEncryptToBytes(data interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (cipherBytes []byte, err error)
 	//加密，返回base64 string
-	RSAEncryptToString(data interface{}, rsaType rSAEncryptType, label []byte) (cipherString string, err error)
+	RSAEncryptToString(data interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (cipherString string, err error)
 	//解密
-	RSADecrypt(cipherBytes interface{}, rsaType rSAEncryptType, label []byte) (data []byte, err error)
+	RSADecrypt(cipherBytes interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (data []byte, err error)
 	//签名, 返回[]byte
 	RSASignToBytes(data interface{}, signType rSASignType, hashType crypto.Hash) (signBytes []byte, err error)
 	//签名, 返回string

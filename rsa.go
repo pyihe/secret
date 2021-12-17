@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -171,7 +170,7 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 	rsaType: ras加密类型, OAEP和PKCS1v15(推荐使用OAEP)
 	label: 当rsaType为OAEP时传值, 不需要时传nil(加密和解密时的label必须一致)
 */
-func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
+func (m *myCipher) RSAEncryptToBytes(originalData interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
 	var publicKey = m.rsaPublicKey
 	if publicKey == nil {
 		if m.rsaPrivateKey == nil {
@@ -180,13 +179,17 @@ func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryp
 		}
 		publicKey = &m.rsaPrivateKey.PublicKey
 	}
+	h, err := getHashInstance(hashType)
+	if err != nil {
+		return
+	}
 	bytes, err := getBytes(originalData)
 	if err != nil {
 		return
 	}
 	switch rsaType {
 	case RSAEncryptTypeOAEP:
-		encryptData, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, bytes, label)
+		encryptData, err = rsa.EncryptOAEP(h, rand.Reader, publicKey, bytes, label)
 	case RSAEncryptTypePKCS1v15:
 		encryptData, err = rsa.EncryptPKCS1v15(rand.Reader, publicKey, bytes)
 	}
@@ -196,8 +199,8 @@ func (m *myCipher) RSAEncryptToBytes(originalData interface{}, rsaType rSAEncryp
 /*
 	RSA加密字符串
 */
-func (m *myCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncryptType, label []byte) (encryptData string, err error) {
-	encryptBytes, err := m.RSAEncryptToBytes(originalData, rsaType, label)
+func (m *myCipher) RSAEncryptToString(originalData interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (encryptData string, err error) {
+	encryptBytes, err := m.RSAEncryptToBytes(originalData, hashType, rsaType, label)
 	if err != nil {
 		return
 	}
@@ -215,9 +218,13 @@ func (m *myCipher) RSAEncryptToString(originalData interface{}, rsaType rSAEncry
 	rsaType: 解密类型, 与加密类型对应（OAEP和PKCS1v15）
 	label: 当rsaType为OAEP时传值，不需要时传nil
 */
-func (m *myCipher) RSADecrypt(encryptData interface{}, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
+func (m *myCipher) RSADecrypt(encryptData interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
 	if m.rsaPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
+		return
+	}
+	h, err := getHashInstance(hashType)
+	if err != nil {
 		return
 	}
 	var cipherText []byte
@@ -241,7 +248,7 @@ func (m *myCipher) RSADecrypt(encryptData interface{}, rsaType rSAEncryptType, l
 	}
 	switch rsaType {
 	case RSAEncryptTypeOAEP:
-		originalData, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, m.rsaPrivateKey, cipherText, label)
+		originalData, err = rsa.DecryptOAEP(h, rand.Reader, m.rsaPrivateKey, cipherText, label)
 
 	case RSAEncryptTypePKCS1v15:
 		originalData, err = rsa.DecryptPKCS1v15(rand.Reader, m.rsaPrivateKey, cipherText)
