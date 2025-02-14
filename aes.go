@@ -7,6 +7,7 @@ import (
 	"crypto/rc4"
 	"crypto/rsa"
 	"encoding/base64"
+
 	"github.com/pyihe/secret/pkg"
 )
 
@@ -15,13 +16,13 @@ import (
 */
 
 const (
-	SymTypeDES symType = iota + 1
+	SymTypeDES SymType = iota + 1
 	SymTypeTripleDes
 	SymTypeAES
 )
 
 const (
-	BlockModeECB blockMode = iota + 1
+	BlockModeECB BlockMode = iota + 1
 	BlockModeCBC
 	BlockModeCFB
 	BlockModeOFB
@@ -30,21 +31,21 @@ const (
 )
 
 type (
-	symType   uint
-	blockMode uint
+	SymType   uint
+	BlockMode uint
 
 	myCipher struct {
 		rsaPrivateKey *rsa.PrivateKey //RSA密钥
 		rsaPublicKey  *rsa.PublicKey  //RSA公钥
 	}
 
-	//对称加密消息请求
+	// SymRequest 对称加密消息请求
 	SymRequest struct {
 		PlainData   interface{} //明文，用于加密
 		CipherData  interface{} //密文，用于解密，两种类型：[]byte或者string
 		Key         []byte      //密钥
-		Type        symType     //加密类型
-		ModeType    blockMode   //分组方式
+		Type        SymType     //加密类型
+		ModeType    BlockMode   //分组方式
 		PaddingType paddingType //填充方式
 		Iv          []byte      //iv
 		AddData     []byte      //GCM模式下额外的验证数据, 如果使用GCM模式, 需要将nonce传递给解密方
@@ -116,7 +117,7 @@ func (m *myCipher) RC4Decrypt(encryptData interface{}, key []byte) ([]byte, erro
 	return m.RC4EncryptToBytes(cipherText, key)
 }
 
-//对称加密，返回字节切片
+// SymEncryptToBytes 对称加密，返回字节切片
 func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, err error) {
 	/*
 		1. 创建密码器
@@ -211,7 +212,7 @@ func (m *myCipher) SymEncryptToBytes(request *SymRequest) (encryptData []byte, e
 	return
 }
 
-//对称加密，返回base64编码后的字符串
+// 对称加密，返回base64编码后的字符串
 func (m *myCipher) SymEncryptToString(request *SymRequest) (encryptString string, err error) {
 	encryptData, err := m.SymEncryptToBytes(request)
 	if err != nil {
@@ -221,7 +222,7 @@ func (m *myCipher) SymEncryptToString(request *SymRequest) (encryptString string
 	return
 }
 
-//解密
+// 解密
 func (m *myCipher) SymDecrypt(request *SymRequest) (originalData []byte, err error) {
 	/*
 		1. 创建密码器

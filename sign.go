@@ -11,21 +11,22 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/pyihe/secret/pkg"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
+
+	"github.com/pyihe/secret/pkg"
 )
 
 const (
-	ECCCurveTypeP224 eccCurveType = iota + 1
+	ECCCurveTypeP224 EccCurveType = iota + 1
 	ECCCurveTypeP256
 	ECCCurveTypeP384
 	ECCCurveTypeP521
 )
 
-type eccCurveType uint
+type EccCurveType uint
 
 type mySigner struct {
 	eccPrivateKey     *ecdsa.PrivateKey  //ECC私钥
@@ -38,7 +39,7 @@ func NewSigner() Signer {
 	return &mySigner{}
 }
 
-//如果是既有的密钥对，需要调用此方法设置ECC私钥
+// 如果是既有的密钥对，需要调用此方法设置ECC私钥
 func (m *mySigner) SetECCKey(privateFile string) error {
 	privateKey, err := getEccPrivateKey(privateFile)
 	if err != nil {
@@ -68,7 +69,7 @@ func (m *mySigner) GetEd25519Key() (ed25519.PublicKey, ed25519.PrivateKey) {
 	ECC签名相关
 */
 //生成椭圆曲线密钥对
-func (m *mySigner) GenerateECCKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error) {
+func (m *mySigner) GenerateECCKey(curveType EccCurveType, saveDir string) (privateFile, publicFile string, err error) {
 	c, err := getCurveInstance(curveType)
 	if err != nil {
 		return
@@ -117,7 +118,7 @@ func (m *mySigner) GenerateECCKey(curveType eccCurveType, saveDir string) (priva
 	return
 }
 
-//ECC数字签名
+// ECC数字签名
 func (m *mySigner) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error) {
 	if m.eccPrivateKey == nil {
 		return nil, pkg.ErrNoPrivateKey
@@ -144,7 +145,7 @@ func (m *mySigner) EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byt
 	return result, nil
 }
 
-//ECC签名字符串
+// ECC签名字符串
 func (m *mySigner) EccSignToString(data interface{}, hashType crypto.Hash) (string, error) {
 	bytes, err := m.EccSignToBytes(data, hashType)
 	if err != nil {
@@ -154,7 +155,7 @@ func (m *mySigner) EccSignToString(data interface{}, hashType crypto.Hash) (stri
 	return result, nil
 }
 
-//ECC数字签名验证
+// ECC数字签名验证
 func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashType crypto.Hash) (ok bool, err error) {
 	if m.eccPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
@@ -199,7 +200,7 @@ func (m *mySigner) EccVerify(signed interface{}, originalData interface{}, hashT
 }
 
 /*
-	DSA签名相关
+DSA签名相关
 */
 func (m *mySigner) GenerateDSAKey(size dsa.ParameterSizes) (err error) {
 	var param dsa.Parameters
@@ -385,7 +386,7 @@ func getEccPublicKey(publicFile string) (publicKey *ecdsa.PublicKey, err error) 
 	return
 }
 
-func getCurveInstance(t eccCurveType) (elliptic.Curve, error) {
+func getCurveInstance(t EccCurveType) (elliptic.Curve, error) {
 	var c elliptic.Curve
 	var err error
 	switch t {

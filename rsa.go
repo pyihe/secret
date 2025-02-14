@@ -15,33 +15,33 @@ import (
 )
 
 const (
-	PKCSLevel1 pKCSLevel = iota + 1 //PKCS#1
+	PKCSLevel1 PKCSLevel = iota + 1 //PKCS#1
 	PKCSLevel8                      //PKCS#8
 )
 
 const (
-	RSAEncryptTypeOAEP     rSAEncryptType = iota + 1 //使用RSA-OAEP算法加密, 推荐使用
+	RSAEncryptTypeOAEP     RSAEncryptType = iota + 1 //使用RSA-OAEP算法加密, 推荐使用
 	RSAEncryptTypePKCS1v15                           //使用PKCS#1 v1.5规定的填充方案和RSA算法加密，加密的数据量有限
 )
 
 const (
-	RSASignTypePKCS1v15 rSASignType = iota + 1
+	RSASignTypePKCS1v15 RSASignType = iota + 1
 	RSASignTypePSS
 )
 
 type (
-	pKCSLevel      uint //PKCS标准类型, 用于生成密钥文件
-	rSAEncryptType uint //RSA加密算法类型, 用于加密、解密
-	rSASignType    uint //RSA签名类型
+	PKCSLevel      uint //PKCS标准类型, 用于生成密钥文件
+	RSAEncryptType uint //RSA加密算法类型, 用于加密、解密
+	RSASignType    uint //RSA签名类型
 )
 
-//如果是既有的密钥对，需要调用此方法设置RSA私钥(pkcsLevel 为生成密钥时的规范，默认为PKCSLevel1)
-func (m *myCipher) SetRSAPrivateKey(privateData interface{}, pkcsLevel pKCSLevel) error {
+// SetRSAPrivateKey 如果是既有的密钥对，需要调用此方法设置RSA私钥(pkcsLevel 为生成密钥时的规范，默认为PKCSLevel1)
+func (m *myCipher) SetRSAPrivateKey(privateData interface{}, pkcsLevel PKCSLevel) error {
 	switch data := privateData.(type) {
 	case *rsa.PrivateKey:
 		m.rsaPrivateKey = data
 	case string:
-		keyBytes, err := ioutil.ReadFile(data)
+		keyBytes, err := os.ReadFile(data)
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ func (m *myCipher) SetRSAPrivateKey(privateData interface{}, pkcsLevel pKCSLevel
 	return nil
 }
 
-func (m *myCipher) SetRSAPublicKey(publicData interface{}, level pKCSLevel) error {
+func (m *myCipher) SetRSAPublicKey(publicData interface{}, level PKCSLevel) error {
 	switch data := publicData.(type) {
 	case *rsa.PublicKey:
 		m.rsaPublicKey = data
@@ -90,13 +90,15 @@ func (m *myCipher) SetRSAPublicKey(publicData interface{}, level pKCSLevel) erro
 	return nil
 }
 
-/*	生成RSA密钥对
-	参数解析:
-	bits: 密钥的长度
-	saveDir: 密钥文件的保存目录
-	pkcsLevel: 生成密钥的规范: PKCS1(PKCS#1) 和PKCS8(PKCS#8)
+/*
+GenerateRSAKey
+生成RSA密钥对
+参数解析:
+bits: 密钥的长度
+saveDir: 密钥文件的保存目录
+pkcsLevel: 生成密钥的规范: PKCS1(PKCS#1) 和PKCS8(PKCS#8)
 */
-func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error) {
+func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel PKCSLevel) (privateFile, publicFile string, err error) {
 	/*
 		1. 生成RSA密钥对
 		2. 将私钥对象转换为DER编码形式
@@ -163,14 +165,15 @@ func (m *myCipher) GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel)
 }
 
 /*
-	使用公钥加密
-	参数解析:
-	originalData: 需要加密的原始数据
-	rsaPublicKey: 公钥路径
-	rsaType: ras加密类型, OAEP和PKCS1v15(推荐使用OAEP)
-	label: 当rsaType为OAEP时传值, 不需要时传nil(加密和解密时的label必须一致)
+RSAEncryptToBytes
+使用公钥加密
+参数解析:
+originalData: 需要加密的原始数据
+rsaPublicKey: 公钥路径
+rsaType: ras加密类型, OAEP和PKCS1v15(推荐使用OAEP)
+label: 当rsaType为OAEP时传值, 不需要时传nil(加密和解密时的label必须一致)
 */
-func (m *myCipher) RSAEncryptToBytes(originalData interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (encryptData []byte, err error) {
+func (m *myCipher) RSAEncryptToBytes(originalData interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (encryptData []byte, err error) {
 	var publicKey = m.rsaPublicKey
 	if publicKey == nil {
 		if m.rsaPrivateKey == nil {
@@ -197,9 +200,10 @@ func (m *myCipher) RSAEncryptToBytes(originalData interface{}, hashType crypto.H
 }
 
 /*
-	RSA加密字符串
+RSAEncryptToString
+RSA加密字符串
 */
-func (m *myCipher) RSAEncryptToString(originalData interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (encryptData string, err error) {
+func (m *myCipher) RSAEncryptToString(originalData interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (encryptData string, err error) {
 	encryptBytes, err := m.RSAEncryptToBytes(originalData, hashType, rsaType, label)
 	if err != nil {
 		return
@@ -208,17 +212,17 @@ func (m *myCipher) RSAEncryptToString(originalData interface{}, hashType crypto.
 	return
 }
 
-//私钥解密
 /*
-	使用私钥解密
-	参数解析:
-	encryptData: 密文
-	rsaPrivateKey: 密钥文件路径
-	pkcsLevel: 密钥生成时选择的标准类型(PKCSLevel1和PKCSLevel8)
-	rsaType: 解密类型, 与加密类型对应（OAEP和PKCS1v15）
-	label: 当rsaType为OAEP时传值，不需要时传nil
+RSADecrypt
+使用私钥解密
+参数解析:
+encryptData: 密文
+rsaPrivateKey: 密钥文件路径
+pkcsLevel: 密钥生成时选择的标准类型(PKCSLevel1和PKCSLevel8)
+rsaType: 解密类型, 与加密类型对应（OAEP和PKCS1v15）
+label: 当rsaType为OAEP时传值，不需要时传nil
 */
-func (m *myCipher) RSADecrypt(encryptData interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (originalData []byte, err error) {
+func (m *myCipher) RSADecrypt(encryptData interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (originalData []byte, err error) {
 	if m.rsaPrivateKey == nil {
 		err = pkg.ErrNoPrivateKey
 		return
@@ -261,15 +265,16 @@ func (m *myCipher) RSADecrypt(encryptData interface{}, hashType crypto.Hash, rsa
 }
 
 /*
-	用私钥进行数字签名
-	参数解析:
-	data: 需要签名的原始数据
-	rsaPrivateKey: 私钥文件路径
-	pkcsLevel: 生成密钥时使用的规范类型(PKCSLevel1和PKCSLevel8)
-	signType: 签名算法类型(SignTypePKCS1v15和SignTypePSS)
-	hashType: hash计算类型
+RSASignToBytes
+用私钥进行数字签名
+参数解析:
+data: 需要签名的原始数据
+rsaPrivateKey: 私钥文件路径
+pkcsLevel: 生成密钥时使用的规范类型(PKCSLevel1和PKCSLevel8)
+signType: 签名算法类型(SignTypePKCS1v15和SignTypePSS)
+hashType: hash计算类型
 */
-func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignType, hashType crypto.Hash) (signedData []byte, err error) {
+func (m *myCipher) RSASignToBytes(data interface{}, signType RSASignType, hashType crypto.Hash) (signedData []byte, err error) {
 	/*	签名流程:
 		1. 获取用于签名的私钥
 		2. 计算原始数据的hash值
@@ -296,8 +301,8 @@ func (m *myCipher) RSASignToBytes(data interface{}, signType rSASignType, hashTy
 	return signedData, err
 }
 
-//签名字符串
-func (m *myCipher) RSASignToString(data interface{}, signType rSASignType, hashType crypto.Hash) (string, error) {
+// 签名字符串
+func (m *myCipher) RSASignToString(data interface{}, signType RSASignType, hashType crypto.Hash) (string, error) {
 	signBytes, err := m.RSASignToBytes(data, signType, hashType)
 	if err != nil {
 		return "", err
@@ -307,15 +312,16 @@ func (m *myCipher) RSASignToString(data interface{}, signType rSASignType, hashT
 }
 
 /*
-	用公钥验证数字签名
-	参数解析:
-	signedData: 私钥签了名的数据
-	originalData: 原始数据
-	rsaPublicKey: 公钥文件路径
-	signType: 签名算法类型, 与签名时的对应一致
-	hashType: hash类型, 与签名时的对应一致
+RSAVerify
+用公钥验证数字签名
+参数解析:
+signedData: 私钥签了名的数据
+originalData: 原始数据
+rsaPublicKey: 公钥文件路径
+signType: 签名算法类型, 与签名时的对应一致
+hashType: hash类型, 与签名时的对应一致
 */
-func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, signType rSASignType, hashType crypto.Hash) (ok bool, err error) {
+func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, signType RSASignType, hashType crypto.Hash) (ok bool, err error) {
 	/*	验证签名流程:
 		1. 获取公钥信息
 		2. 计算原始数据的hash值
@@ -369,7 +375,7 @@ func (m *myCipher) RSAVerify(signedData interface{}, originalData interface{}, s
 	return err == nil, err
 }
 
-func getPrivateKey(keyBytes []byte, pkcsLevel pKCSLevel) (keyData *rsa.PrivateKey, err error) {
+func getPrivateKey(keyBytes []byte, pkcsLevel PKCSLevel) (keyData *rsa.PrivateKey, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
 		err = pkg.ErrPemReadFail
@@ -396,7 +402,7 @@ func getPrivateKey(keyBytes []byte, pkcsLevel pKCSLevel) (keyData *rsa.PrivateKe
 	return
 }
 
-func getPublicKey(keyBytes []byte, pkcsLevel pKCSLevel) (keyData *rsa.PublicKey, err error) {
+func getPublicKey(keyBytes []byte, pkcsLevel PKCSLevel) (keyData *rsa.PublicKey, err error) {
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
 		return nil, pkg.ErrPemReadFail

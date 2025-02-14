@@ -9,11 +9,13 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/pyihe/secret/pkg"
+	"hash"
+
 	"golang.org/x/crypto/md4"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
-	"hash"
+
+	"github.com/pyihe/secret/pkg"
 )
 
 var (
@@ -27,7 +29,8 @@ func NewHasher() Hasher {
 	return defaultHasher
 }
 
-//hexTag 标示字符串是否是16进制格式的
+// HashToString
+// hexTag 标示字符串是否是16进制格式的
 func (s *myHasher) HashToString(data interface{}, hashType crypto.Hash) (hashString string, err error) {
 	var h hash.Hash
 	h, err = getHashInstance(hashType)

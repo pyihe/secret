@@ -13,7 +13,7 @@ import (
 	Hash函数、消息验证码
 */
 
-//对称加密器（包括DES/3DES/AES/RC4）
+// 对称加密器（包括DES/3DES/AES/RC4）
 type Cipher interface {
 	//RC4
 	//加密，返回[]byte
@@ -33,26 +33,26 @@ type Cipher interface {
 
 	//RSA
 	//设置私钥
-	SetRSAPrivateKey(privateFile interface{}, pkcsLevel pKCSLevel) error
+	SetRSAPrivateKey(privateFile interface{}, pkcsLevel PKCSLevel) error
 	//设置公钥
-	SetRSAPublicKey(publicData interface{}, level pKCSLevel) error
+	SetRSAPublicKey(publicData interface{}, level PKCSLevel) error
 	//生成密钥对
-	GenerateRSAKey(bits int, saveDir string, pkcsLevel pKCSLevel) (privateFile, publicFile string, err error)
+	GenerateRSAKey(bits int, saveDir string, pkcsLevel PKCSLevel) (privateFile, publicFile string, err error)
 	//加密,返回[]byte
-	RSAEncryptToBytes(data interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (cipherBytes []byte, err error)
+	RSAEncryptToBytes(data interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (cipherBytes []byte, err error)
 	//加密，返回base64 string
-	RSAEncryptToString(data interface{}, hashType crypto.Hash,rsaType rSAEncryptType, label []byte) (cipherString string, err error)
+	RSAEncryptToString(data interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (cipherString string, err error)
 	//解密
-	RSADecrypt(cipherBytes interface{}, hashType crypto.Hash, rsaType rSAEncryptType, label []byte) (data []byte, err error)
+	RSADecrypt(cipherBytes interface{}, hashType crypto.Hash, rsaType RSAEncryptType, label []byte) (data []byte, err error)
 	//签名, 返回[]byte
-	RSASignToBytes(data interface{}, signType rSASignType, hashType crypto.Hash) (signBytes []byte, err error)
+	RSASignToBytes(data interface{}, signType RSASignType, hashType crypto.Hash) (signBytes []byte, err error)
 	//签名, 返回string
-	RSASignToString(data interface{}, signType rSASignType, hashType crypto.Hash) (signString string, err error)
+	RSASignToString(data interface{}, signType RSASignType, hashType crypto.Hash) (signString string, err error)
 	//验证签名结果
-	RSAVerify(signBytes interface{}, data interface{}, signType rSASignType, hashType crypto.Hash) (ok bool, err error)
+	RSAVerify(signBytes interface{}, data interface{}, signType RSASignType, hashType crypto.Hash) (ok bool, err error)
 }
 
-//hash
+// hash
 type Hasher interface {
 	HashToString(data interface{}, hashType crypto.Hash) (hashString string, err error)
 	HashToBytes(data interface{}, hashType crypto.Hash) (hashBytes []byte, err error)
@@ -63,11 +63,11 @@ type Hasher interface {
 	CheckMac(hashType crypto.Hash, message, key, mac []byte) bool
 }
 
-//数字签名
+// 数字签名
 type Signer interface {
 	//ECC椭圆曲线签名
 	SetECCKey(privateFile string) error
-	GenerateECCKey(curveType eccCurveType, saveDir string) (privateFile, publicFile string, err error)
+	GenerateECCKey(curveType EccCurveType, saveDir string) (privateFile, publicFile string, err error)
 	EccSignToBytes(data interface{}, hashType crypto.Hash) ([]byte, error)
 	EccSignToString(data interface{}, hashType crypto.Hash) (string, error)
 	EccVerify(signData interface{}, originalData interface{}, hashType crypto.Hash) (ok bool, err error)

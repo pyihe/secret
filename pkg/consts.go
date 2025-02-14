@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	ErrInvalidRequest     = errors.New("invalid request")
-	ErrNoPrivateKey       = errors.New("not found key")
+	ErrNoPrivateKey       = errors.New("not found private key")
 	ErrInvalidPKCSLevel   = errors.New("nonsupport PKCS level")
 	ErrInvalidRSAType     = errors.New("nonsupport rsa type")
 	ErrInvalidSignType    = errors.New("nonsupport sign type")
